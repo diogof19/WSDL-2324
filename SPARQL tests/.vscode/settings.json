@@ -1,0 +1,36 @@
+{
+    "sparql-executor.endpoints": [
+        {
+        "protocol": "https",
+        "host": "query.wikidata.org",
+        "path": "/sparql",
+        "name": "Wikidata",
+        "customHeaders": [
+            {
+            "headerName": "User-Agent",
+            "headerValue": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:87.0) Gecko/20100101 Firefox/87.0"
+            },
+        ],
+        "method": "GET",
+        "queryParameterName": "query"
+        },
+        {
+        "protocol": "https",
+        "host": "dbpedia.org",
+        "name": "DBpedia",
+        "path": "/sparql"
+        },
+        {
+        "protocol": "https",
+        "host": "data.getty.edu",
+        "name": "Getty",
+        "path": "/museum/collection/sparql"
+        },
+        {
+        "protocol": "http",
+        "host": "edan.si.edu",
+        "name": "Smithsonian American Art Museum",
+        "path": "/saam/sparql"
+        },
+    ],
+}
