@@ -1,34 +1,34 @@
-<script setup lang="ts">
-import { ref } from 'vue'
+<script lang="ts">
+  import { defineComponent } from 'vue';
+  import axios from 'axios';
 
-defineProps<{ msg: string }>()
+  export default defineComponent({
+      name: 'Search',
+      data: () => ({
+        searchQuery: '',
+      }),
+      methods: {
+        async handleSearch() {
+          console.log('handleSearch %s' , this.searchQuery);
+          
+          const response = await axios.get('http://localhost:8000/artist_search', {
+            params: {
+              q: this.searchQuery,
+            }
+          });
+          
+          //Go to a search results page with the results
+          console.log(response.data);
 
-const count = ref(0)
+        },
+      }
+  });
+
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
-
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
-  </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Install
-    <a href="https://github.com/vuejs/language-tools" target="_blank">Volar</a>
-    in your IDE for a better DX
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
+  <input type="text" v-model="searchQuery" placeholder="Search..."/>
+  <button @click="handleSearch">Search</button>
 </template>
 
 <style scoped>
