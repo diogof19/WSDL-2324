@@ -1,4 +1,5 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
+from models.artist import Artist
 
 '''
 Endpoints:
@@ -47,7 +48,35 @@ query = """
 """ % prefixes
 
 def artist_search(search_term):
-    results = {'getty': [], 'dbpedia': []}
+    results = []
+    
+    #DBPedia
+    query = """
+        %s
+
+        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) ?image WHERE {
+            ?artist rdf:type dbo:Person, dbo:Artist;
+                dbo:birthName ?artist_name.
+            OPTIONAL {
+                ?artist dbo:thumbnail ?image.
+            }
+            FILTER regex(?artist_name, ".*%s.*", "i")
+        }
+    """ % (prefixes, search_term)
+    
+    sparql = SPARQLWrapper(endpoints['dbpedia'])
+    sparql.setReturnFormat(JSON)
+    sparql.setQuery(query)
+    ret = sparql.query().convert()
+    
+    for r in ret['results']['bindings']:
+        artist = Artist(r['artist_name']['value'])
+        artist.add_uri('dbpedia', r['artist']['value'])
+        
+        if 'image' in r:
+            artist.add_thumbnail(r['image']['value'])
+        
+        results.append(artist)
     
     #Getty Museum
     query = """
@@ -66,34 +95,20 @@ def artist_search(search_term):
     ret = sparql.query().convert()
     
     for r in ret["results"]["bindings"]:
-        results['getty'].append(r)
-    
-    """ print("Endpoint: getty")
-    for r in ret["results"]["bindings"]:
-        print(r) """
+        #Check if the artist is already in the results
+        found = False
+        for result in results:
+            if result.name == r['artist_name']['value']:
+                found = True
+                result.add_uri('getty', r['artist']['value'])
+                break
+            
+        if found:
+            continue
         
-    #DBPedia
-    query = """
-        %s
-
-        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?sample_name) WHERE {
-            ?artist rdf:type dbo:Person, dbo:Artist;
-                rdfs:label ?artist_name.
-            FILTER regex(?artist_name, ".*%s.*", "i")
-        }
-    """ % (prefixes, search_term)
-    
-    sparql = SPARQLWrapper(endpoints['dbpedia'])
-    sparql.setReturnFormat(JSON)
-    sparql.setQuery(query)
-    ret = sparql.query().convert()
-    
-    for r in ret['results']['bindings']:
-        results['dbpedia'].append(r)
-    
-    """ print("Endpoint: dbpedia")
-    for r in ret["results"]["bindings"]:
-        print(r) """
+        artist = Artist(r['artist_name']['value'])
+        artist.add_uri('getty', r['artist']['value'])
+        results.append(artist)
         
     return results
 

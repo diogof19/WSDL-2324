@@ -29,6 +29,18 @@
 <template>
   <input type="text" v-model="searchQuery" placeholder="Search..."/>
   <button @click="handleSearch">Search</button>
+  <div class="col">
+        <div class="row">
+            <div class="col" style="width: 50%;margin-left: 20%;"><input type="search" style="width: 100%;margin: 5px;"></div>
+            <div class="col-xl-1" style="width: 10%;">
+                <div class="dropdown"><button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">Dropdown </button>
+                    <div class="dropdown-menu"><a class="dropdown-item" href="#">First Item</a><a class="dropdown-item" href="#">Second Item</a><a class="dropdown-item" href="#">Third Item</a></div>
+                </div>
+            </div>
+            <div class="col"><button class="btn btn-primary" type="button">Button</button></div>
+        </div>
+        <div class="row"></div>
+    </div>
 </template>
 
 <style scoped>
