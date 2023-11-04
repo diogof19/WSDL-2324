@@ -1,10 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
-import SearchResults from './views/SearchResults.vue'
 
 const routes = [
-  { path: '/', component: App },
-  { path: '/search-results/:data', component: SearchResults, name: 'search-results' }
+  { 
+    path: '/',
+    component: App 
+  },
+  { 
+    path: '/search-results/:results',
+    name: 'search-results',
+    component: () => import('./views/SearchResults.vue'),
+    }
 ]
 
 const router = createRouter({

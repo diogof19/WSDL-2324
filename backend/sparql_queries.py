@@ -56,7 +56,7 @@ def artist_search(search_term):
 
         SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) ?image WHERE {
             ?artist rdf:type dbo:Person, dbo:Artist;
-                dbo:birthName ?artist_name.
+                rdfs:label ?artist_name.
             OPTIONAL {
                 ?artist dbo:thumbnail ?image.
             }

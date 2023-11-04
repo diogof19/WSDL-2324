@@ -1,3 +1,12 @@
+<template>
+  <div>
+    <SearchBar/>
+  </div>
+  <div class="col" id="results">
+    <ArtistSearchResult v-for="(artist, index) in artists" :key="index" :artist="artist"/>
+  </div>
+</template>
+
 <script lang="ts">
   import { defineComponent } from 'vue';
   import SearchBar from '../components/SearchBar.vue';
@@ -5,14 +14,17 @@
 
   export default defineComponent({
       name: 'SearchResults',
+      components: {
+        SearchBar,
+        ArtistSearchResult,
+      },
       data() {
         return {
-            "artists": this.$route.params.data
+            "artists": JSON.parse(this.$route.params.results as string),
         }
       },
       created() {
         console.log("SearchResults created");
-        console.log(this.artists);
       },
       methods: {
         
@@ -20,12 +32,3 @@
   });
 
 </script>
-
-<template>
-  <a>DASDADASDASDASD</a>  
-  <SearchBar/>
-  <a>DASDADASDASDASD</a>
-  <div class="col" id="results">
-    <ArtistSearchResult v-for="(artist, index) in artists" :key="index" :artist="artist"/>
-  </div>
-</template>
