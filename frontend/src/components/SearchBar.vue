@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, defineEmits } from 'vue';
+  import { defineComponent } from 'vue';
   import axios from 'axios';
 
   export default defineComponent({
@@ -28,13 +28,7 @@
       data: () => ({
         searchQuery: '',
       }),
-      setup(_, ctx) {
-          defineEmits({ 
-            receivedResponse: (response: any) => {
-              ctx.emit('receivedResponse', response);
-            }
-          })
-      },
+      emits: ['receivedResponse'],
       methods: {
         async handleSearch() {          
           const response = await axios.get('http://localhost:8000/artist_search', {
