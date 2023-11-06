@@ -1,6 +1,6 @@
 <template>
   <div class="row">
-    <div class="col" style="width: 50%;">
+    <div class="col" style="width: 50%;" :onkeydown="handleKeyDown">
         <input type="search" v-model="searchQuery" placeholder="Search..." style="width: 100%;margin: 5px;">
     </div>
     <div class="col-xl-1" style="width: 10%;">
@@ -36,18 +36,21 @@
           })
       },
       methods: {
-        async handleSearch() {
-          console.log('handleSearch %s' , this.searchQuery);
-          
+        async handleSearch() {          
           const response = await axios.get('http://localhost:8000/artist_search', {
             params: {
               q: this.searchQuery,
             }
           });
-          
+
           //Go to a search results page with the results
           this.$emit('receivedResponse', response.data)
         },
+        async handleKeyDown(event: any) {
+          if (event.key === 'Enter') {
+            await this.handleSearch();
+          }
+        }
       }
   });
 
