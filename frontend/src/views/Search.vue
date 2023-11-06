@@ -1,6 +1,6 @@
 <template>
   <div>
-    <SearchBar/>
+    <SearchBar @receivedResponse="handleResponse"/>
   </div>
   <div class="col" id="results">
     <ArtistSearchResult v-for="(artist, index) in artists" :key="index" :artist="artist"/>
@@ -20,14 +20,16 @@
       },
       data() {
         return {
-            "artists": JSON.parse(this.$route.params.results as string),
+            "artists": [],
         }
       },
       created() {
         console.log("SearchResults created");
       },
       methods: {
-        
+        handleResponse(response: any) : void {        
+          this.artists = response
+        }
       }
   });
 

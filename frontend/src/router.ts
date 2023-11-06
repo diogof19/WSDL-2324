@@ -7,15 +7,15 @@ const routes = [
     component: App 
   },
   { 
-    path: '/search-results/:results',
-    name: 'search-results',
-    component: () => import('./views/SearchResults.vue'),
+    path: '/search',
+    name: 'search',
+    component: () => import('./views/Search.vue'),
     }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: routes
 })
 
 export default router

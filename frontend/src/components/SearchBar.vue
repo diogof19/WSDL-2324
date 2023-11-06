@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue';
+  import { defineComponent, defineEmits } from 'vue';
   import axios from 'axios';
 
   export default defineComponent({
@@ -28,6 +28,13 @@
       data: () => ({
         searchQuery: '',
       }),
+      setup(_, ctx) {
+          defineEmits({ 
+            receivedResponse: (response: any) => {
+              ctx.emit('receivedResponse', response);
+            }
+          })
+      },
       methods: {
         async handleSearch() {
           console.log('handleSearch %s' , this.searchQuery);
@@ -37,11 +44,9 @@
               q: this.searchQuery,
             }
           });
-
-          console.log(response.data);
+          
           //Go to a search results page with the results
-          this.$router.push({name: 'search-results', params: {results: JSON.stringify(response.data)}});
-
+          this.$emit('receivedResponse', response.data)
         },
       }
   });
