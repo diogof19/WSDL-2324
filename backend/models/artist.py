@@ -9,3 +9,6 @@ class Artist:
         
     def add_thumbnail(self, thumbnail):
         self.thumbnail = thumbnail
+        
+    def has_thumbnail(self):
+        return self.thumbnail is not None

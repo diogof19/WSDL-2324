@@ -47,6 +47,36 @@ query = """
     } LIMIT 2
 """ % prefixes
 
+def search_and_save(query, endpoint_name, results):
+    sparql = SPARQLWrapper(endpoints[endpoint_name])
+    sparql.setReturnFormat(JSON)
+    sparql.setQuery(query)
+    ret = sparql.query().convert()
+    
+    for r in ret["results"]["bindings"]:
+        #Check if the artist is already in the results
+        found = False
+        for result in results:
+            if result.name == r['artist_name']['value']:
+                found = True
+                result.add_uri(endpoint_name, r['artist']['value'])
+                
+                if 'image' in r and not result.has_thumbnail():
+                    result.add_thumbnail(r['image']['value'])
+                
+                break
+            
+        if found:
+            continue
+        
+        artist = Artist(r['artist_name']['value'])
+        artist.add_uri(endpoint_name, r['artist']['value'])
+        
+        if 'image' in r:
+            artist.add_thumbnail(r['image']['value'])
+        
+        results.append(artist)
+
 def artist_search(search_term):
     results = []
     
@@ -64,19 +94,7 @@ def artist_search(search_term):
         }
     """ % (prefixes, search_term)
     
-    sparql = SPARQLWrapper(endpoints['dbpedia'])
-    sparql.setReturnFormat(JSON)
-    sparql.setQuery(query)
-    ret = sparql.query().convert()
-    
-    for r in ret['results']['bindings']:
-        artist = Artist(r['artist_name']['value'])
-        artist.add_uri('dbpedia', r['artist']['value'])
-        
-        if 'image' in r:
-            artist.add_thumbnail(r['image']['value'])
-        
-        results.append(artist)
+    #search_and_save(query, 'dbpedia', results)
     
     #Getty Museum
     query = """
@@ -89,27 +107,36 @@ def artist_search(search_term):
         }
     """ % (prefixes, search_term)
     
-    sparql = SPARQLWrapper(endpoints['getty'])
-    sparql.setReturnFormat(JSON)
-    sparql.setQuery(query)
-    ret = sparql.query().convert()
+    #search_and_save(query, 'getty', results)
     
-    for r in ret["results"]["bindings"]:
-        #Check if the artist is already in the results
-        found = False
-        for result in results:
-            if result.name == r['artist_name']['value']:
-                found = True
-                result.add_uri('getty', r['artist']['value'])
-                break
-            
-        if found:
-            continue
+    #Smithsonian Museum
+    #DIDN'T TEST BECAUSE ENDPOINT IS DOWN
+    query = """
+        %s
         
-        artist = Artist(r['artist_name']['value'])
-        artist.add_uri('getty', r['artist']['value'])
-        results.append(artist)
+        SELECT DISTINCT ?artist ?artist_name WHERE {
+            ?artist rdf:type la:Actor ;
+                rdfs:label ?artist_name .
+            FILTER regex(?artist_name, ".*%s.*", "i")
+        }
+    """ % (prefixes, search_term)
+    
+    #search_and_save(query, 'smithsonian', results)
+    
+    #Wikidata
+    query = """
+        %s
         
+        SELECT DISTINCT ?artist ?artist_name WHERE {
+            ?artist wdt:P31 wd:Q5 ;
+                rdfs:label ?artist_name .
+            FILTER regex(?artist_name, ".*%s.*", "i")
+            SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+        }
+    """ % (prefixes, search_term)
+
+    search_and_save(query, 'wikidata', results)
+    
     return results
 
 '''
@@ -153,5 +180,11 @@ try:
         print("Endpoint: %s" % endpoint)
         for r in ret["results"]["bindings"]:
             print(r) """
+    results = artist_search("Vincent")
+    for result in results:
+        print(result.name)
+        print(result.uris)
+        print(result.thumbnail)
+        print()
 except Exception as e:
     print(e)
