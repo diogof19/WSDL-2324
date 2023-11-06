@@ -10,7 +10,7 @@
                     <h6 class="text-muted mb-2">URI</h6>
                 </div>
                 <div class="col-md-4 col-xl-2">
-                    <button class="btn btn-primary" type="button">Go to Artist</button>
+                    <button class="btn btn-primary" type="button" @click="goToRoot">Go to Artist</button>
                 </div>
             </div>
         </div>
@@ -34,6 +34,9 @@ export default defineComponent({
     methods: {
         goToArtistPage() {
             //this.$router.push({name: 'ArtistPage', params: {id: this.artist.id}});
+        },
+        goToRoot() {
+            this.$router.push({name: 'home'});
         }
     }
 })

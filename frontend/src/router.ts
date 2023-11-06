@@ -4,7 +4,8 @@ import App from './App.vue'
 const routes = [
   { 
     path: '/',
-    component: App 
+    name: 'home',
+    component: () => import('./views/Search.vue')
   },
   { 
     path: '/search',
