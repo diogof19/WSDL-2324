@@ -1,4 +1,4 @@
-from SPARQLWrapper import SPARQLWrapper, JSON
+from SPARQLWrapper import SPARQLWrapper, JSON, XML, CSV
 from models.artist import Artist
 
 '''
@@ -32,6 +32,7 @@ prefixes = """
     PREFIX la: <https://linked.art/ns/terms/>
     PREFIX getty: <http://data.getty.edu/local/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
+    PREFIX cidoc: <http://www.cidoc-crm.org/cidoc-crm/>
 """
 
 query = """
@@ -51,7 +52,19 @@ def search_and_save(query, endpoint_name, results):
     sparql = SPARQLWrapper(endpoints[endpoint_name])
     sparql.setReturnFormat(JSON)
     sparql.setQuery(query)
-    ret = sparql.query().convert()
+    
+    print("before query")
+    
+    ret = sparql.query()
+    
+    print("after query")
+    
+    """ with open("test.json", "w") as f:
+        f.write(ret.response.read().decode("utf-8")) """
+        
+    ret = ret.convert()
+    
+    print("after convert")
     
     for r in ret["results"]["bindings"]:
         #Check if the artist is already in the results
@@ -115,8 +128,8 @@ def artist_search(search_term):
         %s
         
         SELECT DISTINCT ?artist ?artist_name WHERE {
-            ?artist rdf:type la:Actor ;
-                rdfs:label ?artist_name .
+            ?artist rdf:type cidoc:E39_Actor ;
+                rdfs:label ?artist_name.
             FILTER regex(?artist_name, ".*%s.*", "i")
         }
     """ % (prefixes, search_term)
@@ -128,12 +141,26 @@ def artist_search(search_term):
         %s
         
         SELECT DISTINCT ?artist ?artist_name WHERE {
-            ?artist wdt:P31 wd:Q5 ;
+            ?artist wdt:P31 ?professsion;
                 rdfs:label ?artist_name .
+            ?profession wdt:P31 wd:Q88789639.
             FILTER regex(?artist_name, ".*%s.*", "i")
             SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
         }
     """ % (prefixes, search_term)
+    
+    '''
+    SELECT DISTINCT ?artist ?artist_name WHERE {
+        ?artist wdt:P106 ?professsion.
+        ?profession wdt:P31 wd:Q88789639.
+        ?artist wdt:P31 wd:Q5;
+                rdfs:label ?artist_name .
+
+        FILTER regex(?artist_name, ".*vincent.*", "i")
+        FILTER(LANG(?artist_name) = "en")
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+    } LIMIT 20
+    '''
 
     search_and_save(query, 'wikidata', results)
     
@@ -182,6 +209,8 @@ try:
             print(r) """
     results = artist_search("Vincent")
     for result in results:
+        """ if result.uris.keys().__len__() < 2:
+            continue """
         print(result.name)
         print(result.uris)
         print(result.thumbnail)
