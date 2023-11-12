@@ -1,21 +1,20 @@
 version: '3.0'
 
 services:
-  saam-endpoint:
-    ## Example:
-    build:
+  sparql:
+    build: 
       context: .
       dockerfile: Dockerfile
-    image: fuseki
+    image: virtuoso
     environment:
-      ADMIN_PASSWORD : pass
-      FUSEKI_DATASET_1 : saam
-      TDB : 2
-      TDBLOADER_OPTS : --update
+      DBA_PASSWORD : pass
+      VIRT_PARAMETERS_DIRSALLOWED : ., ../vad, /usr/share/proj, /import
     ports:
-      - "3030:3030"
+      - "8890:8890"
+      - "1111:1111"
     volumes:
-      - fuseki-data:/fuseki/:rw
+      - virtuoso-database:/database:rw
+      - ./n3:/import:ro
 
 volumes:
-  fuseki-data:
+  virtuoso-database:

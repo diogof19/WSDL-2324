@@ -28,9 +28,9 @@
         },
         {
         "protocol": "http",
-        "host": "localhost:3030",
+        "host": "localhost:8890",
         "name": "Smithsonian American Art Museum",
-        "path": "/saam"
+        "path": "/sparql"
         },
     ],
 }
