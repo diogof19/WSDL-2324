@@ -1,1 +1,5 @@
 *.pyc
+n3/*
+saam-database/*
+!n3/.empty
+jena-*

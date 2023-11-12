@@ -28,9 +28,9 @@
         },
         {
         "protocol": "http",
-        "host": "edan.si.edu",
+        "host": "localhost:3030",
         "name": "Smithsonian American Art Museum",
-        "path": "/saam/sparql"
+        "path": "/saam"
         },
     ],
 }
