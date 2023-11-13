@@ -6,12 +6,13 @@ Endpoints:
     - https://dbpedia.org/sparql
     - https://data.getty.edu//museum/collection/sparql
     - https://api.triplydb.com/datasets/smithsonian/american-art-museum/services/american-art-museum/sparql
+      http://localhost:8890/sparql
     - https://query.wikidata.org/sparql (we may or may not use this, it depends on how difficult it is to query the other endpoints)
 '''
 endpoints = {
     'dbpedia': 'https://dbpedia.org/sparql',
     'getty': 'https://data.getty.edu//museum/collection/sparql',
-    'smithsonian': 'https://api.triplydb.com/datasets/smithsonian/american-art-museum/services/american-art-museum/sparql',
+    'smithsonian': 'http://localhost:8890/sparql',
     'wikidata': 'https://query.wikidata.org/sparql'
 }
 
@@ -33,38 +34,22 @@ prefixes = """
     PREFIX getty: <http://data.getty.edu/local/>
     PREFIX dbo: <http://dbpedia.org/ontology/>
     PREFIX cidoc: <http://www.cidoc-crm.org/cidoc-crm/>
+    PREFIX owl: <http://www.w3.org/2002/07/owl#>
+    PREFIX purl: <http://purl.org/dc/elements/1.1/>
+    PREFIX gettyth: <https://data.getty.edu/local/thesaurus/>
 """
-
-query = """
-    %s
-    
-    SELECT * WHERE {
-        ?sub r
-        {
-            ?sub rdfs:label "Vincent van Gogh".
-        } UNION {
-            ?sub rdfs:label "Vincent van Gogh"@en.
-        }
-    } LIMIT 2
-""" % prefixes
 
 def search_and_save(query, endpoint_name, results):
     sparql = SPARQLWrapper(endpoints[endpoint_name])
     sparql.setReturnFormat(JSON)
     sparql.setQuery(query)
     
-    print("before query")
+    ret = sparql.query().convert()
     
-    ret = sparql.query()
+    for r in ret["results"]["bindings"]:
+        print(r)
     
-    print("after query")
-    
-    """ with open("test.json", "w") as f:
-        f.write(ret.response.read().decode("utf-8")) """
-        
-    ret = ret.convert()
-    
-    print("after convert")
+    return
     
     for r in ret["results"]["bindings"]:
         #Check if the artist is already in the results
@@ -123,18 +108,24 @@ def artist_search(search_term):
     #search_and_save(query, 'getty', results)
     
     #Smithsonian Museum
-    #DIDN'T TEST BECAUSE ENDPOINT IS DOWN
+    
     query = """
         %s
         
-        SELECT DISTINCT ?artist ?artist_name WHERE {
+        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) WHERE {
             ?artist rdf:type cidoc:E39_Actor ;
-                rdfs:label ?artist_name.
+              cidoc:P1_is_identified_by ?name.
+            ?name rdfs:label ?artist_name.
             FILTER regex(?artist_name, ".*%s.*", "i")
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'smithsonian', results)
+    query = """
+        describe <person-institution/4778>   
+    """
+    
+    
+    search_and_save(query, 'smithsonian', results)
     
     #Wikidata
     query = """
@@ -162,19 +153,19 @@ def artist_search(search_term):
     } LIMIT 20
     '''
 
-    search_and_save(query, 'wikidata', results)
+    #search_and_save(query, 'wikidata', results)
     
     return results
 
 '''
 Info we want from the artist:
-- Name                          Getty Museum, DBPedia
-- Birth date                    Getty Museum, DBPedia
-- Death date (if applicable)    Getty Museum, DBPedia
-- Birth place                   Getty Museum, DBPedia
-- Death place (if applicable)   Getty Museum, DBPedia
-- Description                   Getty Museum, DBPedia
-- Image (if possible)           Getty Museum, DBPedia
+- Name                          Getty Museum, DBPedia, Smithsonian Museum
+- Birth date                    Getty Museum, DBPedia, Smithsonian Museum
+- Death date (if applicable)    Getty Museum, DBPedia, Smithsonian Museum
+- Birth place                   Getty Museum, DBPedia, Smithsonian Museum
+- Death place (if applicable)   Getty Museum, DBPedia, Smithsonian Museum
+- Description                   Getty Museum, DBPedia, Smithsonian Museum
+- Image (if possible)           Getty Museum, DBPedia,
 - Artworks                      Getty Museum, DBPedia
 - Exhibitions (if applicable)   Getty Museum
 
@@ -182,18 +173,59 @@ Info we want from the artist:
 def retrieve_artist_info(artist_uri):
     
     #Getty Museum
+    
+    # Artist info
     query = """
         %s
         
-        SELECT * WHERE {
-            <%s> rdfs:label ?artist_name ;
-                crm:P98i_was_born ?birth_place ;
-                crm:P100i_died_in ?death_place ;
-                crm:P1_is_identified_by ?description ;
-                crm:P1_is_identified_by ?image .
+        SELECT ?name ?birthYear ?birthPlace ?deathYear ?deathPlace ?bibliography ?gettyLink WHERE {
+            %s crm:P1_is_identified_by ?identify.
+            ?identify a crm:E33_E41_Linguistic_Appellation;
+                    crm:P190_has_symbolic_content ?name.
+
+            %s crm:P98i_was_born ?born.
+            ?born crm:P4_has_time-span ?birth_timespan.
+            ?birth_timespan crm:P82a_begin_of_the_begin ?birthYear.
+
+            %s crm:P67i_is_referred_to_by ?birth_referred.
+            ?birth_referred crm:P2_has_type gettyth:birth-place-description;
+                            crm:P190_has_symbolic_content ?birthPlace.
+
+            OPTIONAL {
+                %s crm:P100i_died_in ?death.
+                ?death crm:P4_has_time-span ?death_timespan.
+                ?death_timespan crm:P67i_is_referred_to_by ?death_referred.
+                ?death_referred crm:P190_has_symbolic_content ?deathYear.
+
+                %s crm:P67i_is_referred_to_by ?death_place_referred.
+                ?death_place_referred crm:P2_has_type gettyth:death-place-description;
+                                        crm:P190_has_symbolic_content ?deathPlace;
+
+            }
+
+            %s crm:P67i_is_referred_to_by ?bib_referred.
+            ?bib_referred rdfs:label "Artist/Maker Biography";
+                        purl:format "text/html"; #the other option is text/markdown
+                        crm:P190_has_symbolic_content ?bibliography.
+
+            %s crm:P129i_is_subject_of ?gettyLink.
+            ?gettyLink crm:P2_has_type aat:300264578.
+        }
+    """ % (prefixes, artist_uri, artist_uri, artist_uri, artist_uri, artist_uri, artist_uri, artist_uri)
+    
+    #Artist artworks - but only the info needed as a thumbnail to link to the actual page
+    query = """
+        %s
+        
+        SELECT ?artWork ?name ?image WHERE {
+            ?production crm:P14_carried_out_by %s.
+            ?artWork crm:P108i_was_produced_by ?production;
+                    crm:P1_is_identified_by ?identify;
+                    crm:P138i_has_representation ?image.
+            ?identify crm:P2_has_type gettyth:object-title-primary;
+                        crm:P190_has_symbolic_content ?name.
         }
     """ % (prefixes, artist_uri)
-    
     
     return
 
@@ -207,7 +239,7 @@ try:
         print("Endpoint: %s" % endpoint)
         for r in ret["results"]["bindings"]:
             print(r) """
-    results = artist_search("Vincent")
+    results = artist_search("alma thomas")
     for result in results:
         """ if result.uris.keys().__len__() < 2:
             continue """
