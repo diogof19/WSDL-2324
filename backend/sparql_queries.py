@@ -232,7 +232,7 @@ def retrieve_artist_info(artist_uri):
     query = """
         %s
         
-        SELECT ?name ?birthDate ?birthPlace ?deathDate ?deathPlace ?bibliography ?wikipediaLink WHERE {
+        SELECT ?name ?birthDate ?birthPlace ?deathDate ?deathPlace ?bibliography ?wikipediaLink ?movement WHERE {
             %s dbo:birthName ?name;
                dbo:birthDate ?birthDate;
                dbo:birthPlace ?bPlace.
