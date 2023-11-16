@@ -227,6 +227,38 @@ def retrieve_artist_info(artist_uri):
         }
     """ % (prefixes, artist_uri)
     
+    # Dbpedia
+    
+    query = """
+        %s
+        
+        SELECT ?name ?birthDate ?birthPlace ?deathDate ?deathPlace ?bibliography ?wikipediaLink WHERE {
+            %s dbo:birthName ?name;
+               dbo:birthDate ?birthDate;
+               dbo:birthPlace ?bPlace.
+               
+            ?bPlace dbp:name ?birthPlace.
+
+            OPTIONAL {
+                    %s dbo:deathDate ?deathDate;
+                       dbo:deathPlace ?dPlace.
+                    
+                    ?dPlace dbp:name ?deathPlace.
+                    
+                    %s dbo:movement ?movementPage.
+                    ?movementPage rdfs:label ?movement
+                    FILTER langMatches(lang(?movement),'en')
+            }
+
+            %s dbo:abstract ?bibliography.
+            FILTER langMatches(lang(?bibliography),'en')
+
+            %s foaf:isPrimaryTopicOf ?wikipediaLink
+        }
+    """ % (prefixes, artist_uri, artist_uri, artist_uri, artist_uri, artist_uri)
+    
+    
+    
     return
 
 try:

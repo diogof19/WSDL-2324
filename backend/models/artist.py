@@ -4,6 +4,13 @@ class Artist:
         self.name = name
         self.uris = {}
         self.thumbnail = None
+        self.birth_date = None
+        self.birth_place = None
+        self.death_date = None
+        self.death_place = None
+        self.bibliography = None
+        self.getty_link = None
+        self.artworks = []
         
     def add_uri(self, endpoint, uri):
         self.uris[endpoint] = uri
