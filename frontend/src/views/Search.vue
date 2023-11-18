@@ -3,7 +3,7 @@
     <SearchBar @receivedResponse="handleResponse"/>
   </div>
   <div class="col" id="results">
-    <ArtistSearchResult v-for="(artist, index) in artists" :key="index" :artist="artist"/>
+    <ArtistSearchResult v-for="(artist, index) in searchResults" :key="index" :artist="artist"/>
   </div>
 </template>
 
@@ -20,15 +20,18 @@
       },
       data() {
         return {
-            "artists": [],
+            "searchResults": [],
         }
       },
       created() {
         console.log("SearchResults created");
       },
       methods: {
-        handleResponse(response: any) : void {        
-          this.artists = response
+        handleResponse(response: [], reset : boolean) : void { 
+          if (reset) {
+            this.searchResults = []
+          }       
+          this.searchResults.push(...response);
         }
       }
   });
