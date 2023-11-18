@@ -11,3 +11,8 @@
 
 - SPAQRL endpoint is ```http://localhost:8890/sparql```
 
+# GUI
+
+- [Virtuoso](http://localhost:8890)
+- [SPARQL Editor](http://localhost:8890/sparql)
+
