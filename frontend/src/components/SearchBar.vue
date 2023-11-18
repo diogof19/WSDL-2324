@@ -38,7 +38,7 @@
           });
 
           //Go to a search results page with the results
-          this.$emit('receivedResponse', response.data)
+          this.$emit('receivedResponse', response.data, true)
         },
         async handleKeyDown(event: any) {
           if (event.key === 'Enter') {
