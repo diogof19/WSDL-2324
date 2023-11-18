@@ -16,3 +16,8 @@
 - [Virtuoso](http://localhost:8890)
 - [SPARQL Editor](http://localhost:8890/sparql)
 
+# Credentials
+
+- Virtuoso
+  - username    -   dba
+  - password    -   pass
