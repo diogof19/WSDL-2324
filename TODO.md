@@ -4,4 +4,4 @@
 
 # Ideas
 
--[] Related artworks and artists
+- [ ] Related artworks and artists
