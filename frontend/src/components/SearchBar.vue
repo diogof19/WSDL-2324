@@ -30,15 +30,20 @@
       }),
       emits: ['receivedResponse'],
       methods: {
-        async handleSearch() {          
-          const response = await axios.get('http://localhost:8000/artist_search', {
+        async handleSearch() {   
+          let firstResult = true;
+
+          // Artist search
+          axios.get('http://localhost:8000/artist_search', {
             params: {
               q: this.searchQuery,
             }
+          }).then(response => {
+            this.$emit('receivedResponse', response.data, firstResult);
+            firstResult = false;
+          }).catch(error => {
+            console.log(error);
           });
-
-          //Go to a search results page with the results
-          this.$emit('receivedResponse', response.data, true)
         },
         async handleKeyDown(event: any) {
           if (event.key === 'Enter') {
