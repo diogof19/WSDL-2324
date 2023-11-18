@@ -132,7 +132,7 @@ def artist_search(search_term):
         %s
         
         SELECT DISTINCT ?artist ?artist_name WHERE {
-            ?artist wdt:P31 ?professsion;
+            ?artist wdt:P31 ?profession;
                 rdfs:label ?artist_name .
             ?profession wdt:P31 wd:Q88789639.
             FILTER regex(?artist_name, ".*%s.*", "i")
@@ -142,7 +142,7 @@ def artist_search(search_term):
     
     '''
     SELECT DISTINCT ?artist ?artist_name WHERE {
-        ?artist wdt:P106 ?professsion.
+        ?artist wdt:P106 ?profession.
         ?profession wdt:P31 wd:Q88789639.
         ?artist wdt:P31 wd:Q5;
                 rdfs:label ?artist_name .
@@ -155,6 +155,77 @@ def artist_search(search_term):
 
     #search_and_save(query, 'wikidata', results)
     
+    return results
+
+def artwork_search(search_term):
+    results = []
+
+    #DBPedia
+    query = """
+        %s
+
+        SELECT DISTINCT ?artwork ?artwork_name ?image WHERE {
+            ?artwork rdf:type dbo:Artwork;
+                rdfs:label ?artwork_name.
+            OPTIONAL {
+                ?artwork dbo:thumbnail ?image.
+            }
+            FILTER regex(?artwork_name, ".*%s.*", "i")
+        }
+    """ % (prefixes, search_term)
+
+    search_and_save(query, 'dbpedia', results)
+
+    #Getty Museum
+    query = """
+        %s
+
+        SELECT DISTINCT ?artwork ?artwork_name ?image WHERE {
+            ?artwork rdf:type crm:E22_Human-Made_Object;
+                rdfs:label ?artwork_name.
+            OPTIONAL {
+                ?artwork getty:thumbnailUrl ?image.
+            }
+            FILTER regex(?artwork_name, ".*%s.*", "i")
+        }
+    """ %  (prefixes, search_term)
+
+    search_and_save(query, 'getty', results)
+
+    #Smithsonian Museum 
+    #TODO: I don't know if this is the right query has_representation does seem to work
+    query = """
+        %s
+        
+        SELECT DISTINCT ?artwork (SAMPLE(?artwork_name) AS ?artwork_name) ?image WHERE {
+            ?artist rdf:type cidoc:E22_Man-Made_Object;
+                rdfs:label ?artwork_name.
+            OPTIONAL {
+                ?artwork cidoc:P138i_has_representation ?image. 
+            }
+            FILTER regex(?artwork_name, ".*%s.*", "i")
+        }
+    """ % (prefixes, search_term)
+    
+    #search_and_save(query, 'smithsonian', results)
+
+    #Wikidata
+    query = """
+        %s
+
+        SELECT DISTINCT ?artwork ?artwork_name ?image WHERE {
+            ?artwork wdt:P31 wd:Q3305213;
+                wdt:P1476 ?artwork_name.
+            OPTIONAL {
+                ?artwork wdt:P18 ?image.
+            }
+            FILTER regex(?artwork_name, ".*%s.*", "i")
+            SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
+            }
+    """ % (prefixes, search_term)
+
+    search_and_save(query, 'wikidata', results)
+
     return results
 
 '''
@@ -271,7 +342,7 @@ try:
         print("Endpoint: %s" % endpoint)
         for r in ret["results"]["bindings"]:
             print(r) """
-    results = artist_search("alma thomas")
+    results = artwork_search("The potato eaters")
     for result in results:
         """ if result.uris.keys().__len__() < 2:
             continue """
