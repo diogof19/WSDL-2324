@@ -1,0 +1,44 @@
+version: '3.0'
+
+services:
+  database:
+    hostname: database
+    build: 
+      context: ./database
+      dockerfile: Dockerfile
+    image: virtuoso
+    environment:
+      DBA_PASSWORD : pass
+      VIRT_PARAMETERS_DIRSALLOWED : ., ../vad, /usr/share/proj, /import
+    ports:
+      - "8890:8890"
+      - "1111:1111"
+    volumes:
+      - virtuoso-database:/database:rw
+      - ./database/n3:/import:ro
+  backend:
+    hostname: backend
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    image: backend
+    environment:
+      BACKUP_DATABASE_HOST : database
+    ports:
+      - "8000:80"
+    depends_on:
+      - database
+  frontend:
+    hostname: frontend
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  virtuoso-database:
+

@@ -2,9 +2,24 @@
 
 ## Running
 
+# Download and extract data for backup SAAM endpoint
+
+- Download data [here](http://sirismm.si.edu/siris/linkeddata/n3.tar)
+- Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```database/n3``` (Don't delete the .empty that is there already)
+
+# Start containers
+
+- In the project root, run:
+
+```shell
+docker-compose up
+```
+
+## Running (DEV)
+
 ### Frontend
 
-- First time
+- First time:
 
 ```shell
 npm install

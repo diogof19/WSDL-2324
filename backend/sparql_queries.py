@@ -1,5 +1,8 @@
 from SPARQLWrapper import SPARQLWrapper, JSON, XML, CSV
 from models.artist import Artist
+from globals import BACKUP_DATABASE_HOST
+
+import os
 
 '''
 Endpoints:
@@ -12,7 +15,7 @@ Endpoints:
 endpoints = {
     'dbpedia': 'https://dbpedia.org/sparql',
     'getty': 'https://data.getty.edu//museum/collection/sparql',
-    'smithsonian': 'http://localhost:8890/sparql',
+    'smithsonian': f'http://{BACKUP_DATABASE_HOST}:8890/sparql',
     'wikidata': 'https://query.wikidata.org/sparql'
 }
 
