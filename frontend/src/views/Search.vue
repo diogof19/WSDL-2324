@@ -35,14 +35,16 @@
             this.searchResults = [] as (Artist | Artwork)[]
           }       
           this.searchResults = this.searchResults.concat(this.makeObjectArray(response));
+
+          console.log(this.searchResults);
         },
         makeObjectArray(response: any[]) : (Artist | Artwork)[] {
           let results = [] as (Artist | Artwork)[];
           for (let i = 0; i < response.length; i++) {
             let result = response[i];
-            if (result.hasOwnProperty("artist")) {
+            if (result.type === "artist") {
               results.push(result as Artist);
-            } else if (result.hasOwnProperty("artwork")) {
+            } else if (result.type === "artwork") {
               results.push(result as Artwork);
             }
           }

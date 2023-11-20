@@ -1,10 +1,10 @@
 version: '3.0'
 
 services:
-  database:
-    hostname: database
+  saam:
+    hostname: saam
     build: 
-      context: ./database
+      context: ./saam
       dockerfile: Dockerfile
     image: virtuoso
     environment:
@@ -15,7 +15,7 @@ services:
       - "1111:1111"
     volumes:
       - virtuoso-database:/database:rw
-      - ./database/n3:/import:ro
+      - ./saam/n3:/import:ro
   backend:
     hostname: backend
     build: 
@@ -23,11 +23,11 @@ services:
       dockerfile: Dockerfile
     image: backend
     environment:
-      BACKUP_DATABASE_HOST : database
+      BACKUP_DATABASE_HOST : saam
     ports:
       - "8000:80"
     depends_on:
-      - database
+      - saam
   frontend:
     hostname: frontend
     build: 

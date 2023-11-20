@@ -4,12 +4,12 @@ from globals import BACKUP_DATABASE_HOST
 
 import os
 
-'''
+f'''
 Endpoints:
     - https://dbpedia.org/sparql
     - https://data.getty.edu//museum/collection/sparql
     - https://api.triplydb.com/datasets/smithsonian/american-art-museum/services/american-art-museum/sparql
-      http://localhost:8890/sparql
+      http://{BACKUP_DATABASE_HOST}:8890/sparql
     - https://query.wikidata.org/sparql (we may or may not use this, it depends on how difficult it is to query the other endpoints)
 '''
 endpoints = {
@@ -50,11 +50,6 @@ def search_and_save(query, endpoint_name, results):
     ret = sparql.query().convert()
     
     for r in ret["results"]["bindings"]:
-        print(r)
-    
-    return
-    
-    for r in ret["results"]["bindings"]:
         #Check if the artist is already in the results
         found = False
         for result in results:
@@ -91,11 +86,12 @@ def artist_search(search_term):
             OPTIONAL {
                 ?artist dbo:thumbnail ?image.
             }
-            FILTER regex(?artist_name, ".*%s.*", "i")
+            ?redirect dbo:wikiPageRedirects ?artist
+            FILTER regex(?redirect, ".*%s.*", "i")
         }
-    """ % (prefixes, search_term)
+    """ % (prefixes, '.*'.join(search_term.split(' ')))
     
-    #search_and_save(query, 'dbpedia', results)
+    search_and_save(query, 'dbpedia', results)
     
     #Getty Museum
     query = """
@@ -108,7 +104,7 @@ def artist_search(search_term):
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'getty', results)
+    search_and_save(query, 'getty', results)
     
     #Smithsonian Museum
     
@@ -123,12 +119,8 @@ def artist_search(search_term):
         }
     """ % (prefixes, search_term)
     
-    query = """
-        describe <person-institution/4778>   
-    """
     
-    
-    search_and_save(query, 'smithsonian', results)
+    #search_and_save(query, 'smithsonian', results)
     
     #Wikidata
     query = """
@@ -157,7 +149,7 @@ def artist_search(search_term):
     '''
 
     #search_and_save(query, 'wikidata', results)
-    
+
     return results
 
 def artwork_search(search_term):

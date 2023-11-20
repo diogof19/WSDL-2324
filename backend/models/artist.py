@@ -3,6 +3,7 @@ class Artist:
     def __init__(self, name) -> None:
         self.name = name
         self.uris = {}
+        self.type = 'artist'
         self.thumbnail = None
         self.birth_date = None
         self.birth_place = None

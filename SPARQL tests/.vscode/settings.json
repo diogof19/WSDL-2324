@@ -32,5 +32,11 @@
         "name": "Smithsonian American Art Museum",
         "path": "/sparql"
         },
+        {
+        "protocol": "https",
+        "host": "vocab.getty.edu",
+        "name": "Getty Vocabularies",
+        "path": "/sparql"
+        },
     ],
 }
