@@ -1,7 +1,6 @@
-class Artwork:
+from models.result import Result
+
+class Artwork(Result):
     def __init__(self) -> None:
-        self.name = None
-        self.type = 'artwork'
-        self.uris = {}
-        self.image = None
+        super().__init__('artwork')
         pass

@@ -3,7 +3,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4 col-xl-2">
-                    <img v-if="isArtist && artist.thumbnail != null" :src=artist.thumbnail style="height: 100%; width: 100%;">
+                    <img v-if="isArtist && artist.image != null" :src=artist.image style="height: 100%; width: 100%;">
                     <img v-else-if="isArtwork && artwork.image != null" :src=artwork.image style="height: 100%; width: 100%;">
                 </div>
                 <div class="col-md-4 col-xl-8">

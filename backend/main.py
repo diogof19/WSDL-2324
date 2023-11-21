@@ -21,8 +21,6 @@ def root():
 @app.get('/artist_search')
 async def search(q: Optional[str] = ''):
     results = sparql_queries.artist_search(q)
-    
-    print(results)
 
     return results
 

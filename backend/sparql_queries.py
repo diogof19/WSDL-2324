@@ -16,7 +16,8 @@ endpoints = {
     'dbpedia': 'https://dbpedia.org/sparql',
     'getty': 'https://data.getty.edu//museum/collection/sparql',
     'smithsonian': f'http://{BACKUP_DATABASE_HOST}:8890/sparql',
-    'wikidata': 'https://query.wikidata.org/sparql'
+    'wikidata': 'https://query.wikidata.org/sparql',
+    'getty_vocab': 'https://vocab.getty.edu/sparql'
 }
 
 prefixes = """
@@ -51,16 +52,47 @@ def search_and_save(query, endpoint_name, results):
     
     for r in ret["results"]["bindings"]:
         #Check if the artist is already in the results
+        match_id = None
+
+        if endpoint_name == 'getty' and 'exact_match' in r:
+            query = """
+                %s
+
+                SELECT DISTINCT ?exact_match WHERE {
+                    <%s> skos:exactMatch ?exact_match.
+                    FILTER regex(str(?exact_match),"^https:\\\\/\\\\/wikidata\\\\.org\\\\/.*", "i")
+                }
+            """ % (prefixes, r['exact_match']['value'])
+
+            sparql = SPARQLWrapper(endpoints['getty_vocab'])
+            sparql.setReturnFormat(JSON)
+            sparql.setQuery(query)
+
+            ret_2 = sparql.query().convert()
+
+            print(ret_2)
+
+            match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
+
         found = False
+
         for result in results:
-            if result.name == r['artist_name']['value']:
+            if endpoint_name == 'getty' and match_id == result.uris['wikidata'].split('/')[-1]:
                 found = True
+
                 result.add_uri(endpoint_name, r['artist']['value'])
-                
-                if 'image' in r and not result.has_thumbnail():
+
+                if 'image' in r and not result.has_image():
                     result.add_thumbnail(r['image']['value'])
-                
-                break
+            elif endpoint_name == 'saam' and r['dbpedia']['value'] == result.uris['dbpedia']:
+                found = True
+
+                result.add_uri(endpoint_name, r['saam']['value'])
+
+                if 'image' in r and not result.has_image():
+                    result.add_thumbnail(r['image']['value'])
+
+            break                
             
         if found:
             continue
@@ -69,9 +101,13 @@ def search_and_save(query, endpoint_name, results):
         artist.add_uri(endpoint_name, r['artist']['value'])
         
         if 'image' in r:
-            artist.add_thumbnail(r['image']['value'])
+            artist.add_image(r['image']['value'])
+
+        if 'wikidata' in r:
+            artist.add_uri('wikidata', r['wikidata']['value'])
         
         results.append(artist)
+        
 
 def artist_search(search_term):
     results = []
@@ -80,14 +116,16 @@ def artist_search(search_term):
     query = """
         %s
 
-        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) ?image WHERE {
+        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) ?image ?wikidata WHERE {
             ?artist rdf:type dbo:Person, dbo:Artist;
-                rdfs:label ?artist_name.
+                rdfs:label ?artist_name;
+                owl:sameAs ?wikidata.
             OPTIONAL {
                 ?artist dbo:thumbnail ?image.
             }
             ?redirect dbo:wikiPageRedirects ?artist
             FILTER regex(?redirect, ".*%s.*", "i")
+            FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
         }
     """ % (prefixes, '.*'.join(search_term.split(' ')))
     
@@ -97,10 +135,12 @@ def artist_search(search_term):
     query = """
         %s
         
-        SELECT DISTINCT ?artist ?artist_name WHERE {
-            ?artist rdf:type crm:E21_Person ;
-                rdfs:label ?artist_name .
+        SELECT DISTINCT ?artist ?artist_name ?exact_match WHERE {
+            ?artist rdf:type crm:E21_Person;
+                rdfs:label ?artist_name;
+                skos:exactMatch ?exact_match.
             FILTER regex(?artist_name, ".*%s.*", "i")
+            FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
         }
     """ % (prefixes, search_term)
     
@@ -111,17 +151,19 @@ def artist_search(search_term):
     query = """
         %s
         
-        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) WHERE {
-            ?artist rdf:type cidoc:E39_Actor ;
-              cidoc:P1_is_identified_by ?name.
+        SELECT DISTINCT ?artist (SAMPLE(?artist_name) AS ?artist_name) ?dbpedia WHERE {
+            ?artist rdf:type cidoc:E39_Actor;
+              cidoc:P1_is_identified_by ?name;
+              owl:sameAs ?dbpedia.
             ?name rdfs:label ?artist_name.
             FILTER regex(?artist_name, ".*%s.*", "i")
+            FILTER regex(?dbpedia, "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
         }
     """ % (prefixes, search_term)
     
     
-    #search_and_save(query, 'smithsonian', results)
-    
+    search_and_save(query, 'smithsonian', results)
+
     #Wikidata
     query = """
         %s
