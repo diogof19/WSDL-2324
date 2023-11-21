@@ -1,5 +1,6 @@
 export type Artist = {
     name : string,
+    type : string,
     uris : Map<string, string>,
     image : string,
     birth_date : Date,

@@ -3,8 +3,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4 col-xl-2">
-                    <img v-if="isArtist && artist.image != null" :src=artist.image style="height: 100%; width: 100%;">
-                    <img v-else-if="isArtwork && artwork.image != null" :src=artwork.image style="height: 100%; width: 100%;">
+                    <img v-if="result.image != null" :src=result.image style="height: 100%; width: 100%;">
                 </div>
                 <div class="col-md-4 col-xl-8">
                     <h4>{{result.name}}</h4>
@@ -41,20 +40,11 @@ export default defineComponent({
         artwork(): Artwork {
             return this.result as Artwork;
         },
-        type(): string {
-            if (this.artist != null) {
-                return "artist";
-            } else if (this.artwork != null) {
-                return "artwork";
-            } else {
-                return "unknown";
-            }
-        },
         isArtwork(): boolean {
-            return this.type == "artwork";
+            return this.result.type == "artwork";
         },
         isArtist(): boolean {
-            return this.type == "artist";
+            return this.result.type == "artist";
         }
     },
     data() {
