@@ -83,14 +83,14 @@ def search_and_save(query, endpoint_name, results):
                 result.add_uri(endpoint_name, r['artist']['value'])
 
                 if 'image' in r and not result.has_image():
-                    result.add_thumbnail(r['image']['value'])
+                    result.add_image(r['image']['value'])
             elif endpoint_name == 'saam' and r['dbpedia']['value'] == result.uris['dbpedia']:
                 found = True
 
                 result.add_uri(endpoint_name, r['saam']['value'])
 
                 if 'image' in r and not result.has_image():
-                    result.add_thumbnail(r['image']['value'])
+                    result.add_image(r['image']['value'])
 
             break                
             
