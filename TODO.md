@@ -1,8 +1,8 @@
 # Mandated
 
-- [ ] Search for artworks - Tiago
+- [X] Search for artworks - Tiago
 - [X] Search for both artists and artworks at the same time - André
-- [ ] Get information for artist page - Diogo
+- [X] Get information for artist page - Diogo
 - [ ] Artist page - Diogo
 - [ ] Get information for artwork page
 - [ ] Artwork page
