@@ -43,6 +43,7 @@ prefixes = """
     PREFIX owl: <http://www.w3.org/2002/07/owl#>
     PREFIX purl: <http://purl.org/dc/elements/1.1/>
     PREFIX gettyth: <https://data.getty.edu/local/thesaurus/>
+    PREFIX dbp: <http://dbpedia.org/property/>
 """
 
 def search_and_save(query, endpoint_name, results, result_type):
@@ -152,7 +153,6 @@ def artist_search(search_term):
                 FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
             }
             FILTER regex(?name, ".*%s.*", "i")
-            FILTER (lang(?name) = "en")
         }
     """ % (prefixes, search_term)
     
@@ -311,11 +311,15 @@ Info we want from the artist:
 
 '''
 def retrieve_artist_info(uris):
+    for key in uris.keys():
+        uris[key] = '<%s>' % uris[key]
+        print(uris[key])
+    
     if 'dbpedia' in uris.keys():
         query = """
         %s
         
-        SELECT ?name ?birthDate ?birthPlace ?deathDate ?deathPlace ?biography ?wikipediaLink ?movement WHERE {
+        SELECT ?name ?image ?birthDate ?birthPlace ?deathDate ?deathPlace ?biography ?wikipediaLink ?movement WHERE {
             %s dbo:birthName ?name;
                dbo:birthDate ?birthDate;
                dbo:birthPlace ?bPlace.
@@ -323,9 +327,10 @@ def retrieve_artist_info(uris):
             ?bPlace dbp:name ?birthPlace.
 
             OPTIONAL {
+                    %s dbo:thumbnail ?image.
+                
                     %s dbo:deathDate ?deathDate;
                        dbo:deathPlace ?dPlace.
-                    
                     ?dPlace dbp:name ?deathPlace.
                     
                     %s dbo:movement ?movementPage.
@@ -333,13 +338,13 @@ def retrieve_artist_info(uris):
                     FILTER langMatches(lang(?movement),'en')
             }
 
-            %s dbo:abstract ?bibliography.
-            FILTER langMatches(lang(?bibliography),'en')
+            %s dbo:abstract ?biography.
+            FILTER langMatches(lang(?biography),'en')
 
             %s foaf:isPrimaryTopicOf ?wikipediaLink
         }
-        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
-        
+        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
+                
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
         sparql.setQuery(query)
@@ -358,6 +363,7 @@ def retrieve_artist_info(uris):
         artist.add_biography('dbpedia', artist_result['biography']['value'])
         artist.add_movement(artist_result['movement']['value'])
         artist.add_wikipedia_link(artist_result['wikipediaLink']['value'])
+        artist.add_image(artist_result['image']['value'])
     
     
     if 'getty' in uris.keys():
@@ -444,40 +450,25 @@ def retrieve_artist_info(uris):
                            rdf:value ?bio.
             }
         }
-    """ % (prefixes, uris['smithsonian'], uris['smithsonian'], uris['smithsonian'])
+        """ % (prefixes, uris['smithsonian'], uris['smithsonian'], uris['smithsonian'])
     
-    sparql = SPARQLWrapper(endpoints['smithsonian'])
-    sparql.setReturnFormat(JSON)
-    sparql.setQuery(query)
-    
-    ret = sparql.query().convert()
-    artist_result = ret["results"]["bindings"][0]
-    
-    if 'artist' not in locals():
-        artist = Artist(artist_result['name']['value'])
-        artist.add_birth_date(artist_result['birthYear']['value'])
-        artist.add_birth_place(artist_result['birthPlace']['value'])
-        if 'deathYear' in artist_result:
-            artist.add_death_date(artist_result['deathYear']['value'])
-        if 'deathPlace' in artist_result:
-            artist.add_death_place(artist_result['deathPlace']['value'])
-    
-    artist.add_biography('smithsonian', artist_result['biography']['value'])
-    artist.add_uri('smithsonian', uris['smithsonian'])
+        sparql = SPARQLWrapper(endpoints['smithsonian'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
         
-    
-    #Artist artworks - but only the info needed as a thumbnail to link to the actual page
-    query = """
-        %s
+        ret = sparql.query().convert()
+        artist_result = ret["results"]["bindings"][0]
         
-        SELECT ?uri ?name ?image WHERE {
-            ?production crm:P14_carried_out_by %s.
-            ?uri crm:P108i_was_produced_by ?production;
-                    crm:P1_is_identified_by ?identify;
-                    crm:P138i_has_representation ?image.
-            ?identify crm:P2_has_type gettyth:object-title-primary;
-                        crm:P190_has_symbolic_content ?name.
-        }
-    """ % (prefixes, uris['getty'])
-    
+        if 'artist' not in locals():
+            artist = Artist(artist_result['name']['value'])
+            artist.add_birth_date(artist_result['birthYear']['value'])
+            artist.add_birth_place(artist_result['birthPlace']['value'])
+            if 'deathYear' in artist_result:
+                artist.add_death_date(artist_result['deathYear']['value'])
+            if 'deathPlace' in artist_result:
+                artist.add_death_place(artist_result['deathPlace']['value'])
+        
+        artist.add_biography('smithsonian', artist_result['biography']['value'])
+        artist.add_uri('smithsonian', uris['smithsonian'])
+        
     return artist

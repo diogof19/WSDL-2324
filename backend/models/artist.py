@@ -4,6 +4,7 @@ from models.result import Result
 class Artist(Result):
     def __init__(self, name) -> None:
         super().__init__('artist', name)
+        self.image = None
         self.birth_date = None
         self.birth_place = None
         self.death_date = None
@@ -14,14 +15,15 @@ class Artist(Result):
         self.wikipedia_link = None
         self.artworks = []
         
+        
     def add_uri(self, endpoint, uri):
         self.uris[endpoint] = uri
         
-    def add_thumbnail(self, thumbnail):
-        self.thumbnail = thumbnail
+    def add_image(self, image):
+        self.image = image
         
-    def has_thumbnail(self):
-        return self.thumbnail is not None
+    def has_image(self):
+        return self.image is not None
     
     def add_birth_date(self, birth_date):
         self.birth_date = birth_date
