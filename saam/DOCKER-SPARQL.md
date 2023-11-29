@@ -1,7 +1,7 @@
 # Download and extract data
 
 - Download data [here](http://sirismm.si.edu/siris/linkeddata/n3.tar)
-- Extract to ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` ```backend/n3``` (Don't delete the .empty that is there already)
+- Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```database/n3``` (Don't delete the .empty that is there already)
 
 # Docker
 

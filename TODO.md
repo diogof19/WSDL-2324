@@ -1,13 +1,13 @@
 # Mandated
 
-- [ ] Search for artworks - Tiago
-- [ ] Search for both artists and artworks at the same time - André
-- [ ] Get information for artist page - Diogo
+- [X] Search for artworks - Tiago
+- [X] Search for both artists and artworks at the same time - André
+- [X] Get information for artist page - Diogo
 - [ ] Artist page - Diogo
 - [ ] Get information for artwork page
 - [ ] Artwork page
 - [ ] Link between Artist and Artwork
-- [ ] Create a docker - André
+- [X] Create a docker - André
 
 # Ideas
 

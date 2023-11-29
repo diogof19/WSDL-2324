@@ -44,6 +44,18 @@
           }).catch(error => {
             console.log(error);
           });
+
+          // Artwork search
+          axios.get('http://localhost:8000/artwork_search', {
+            params: {
+              q: this.searchQuery,
+            }
+          }).then(response => {
+            this.$emit('receivedResponse', response.data, firstResult);
+            firstResult = false;
+          }).catch(error => {
+            console.log(error);
+          });
         },
         async handleKeyDown(event: any) {
           if (event.key === 'Enter') {

@@ -1,9 +1,9 @@
+from models.result import Result
 
-class Artist:
+
+class Artist(Result):
     def __init__(self, name) -> None:
-        self.name = name
-        self.uris = {}
-        self.thumbnail = None
+        super().__init__('artist', name)
         self.birth_date = None
         self.birth_place = None
         self.death_date = None

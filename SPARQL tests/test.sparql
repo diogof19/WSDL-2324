@@ -1,1 +1,24 @@
-select distinct ?Concept where {[] a ?Concept} LIMIT 100
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+PREFIX gvp: <http://vocab.getty.edu/ontology#>
+PREFIX aat: <http://vocab.getty.edu/aat/>
+PREFIX ulan: <http://vocab.getty.edu/ulan/>
+PREFIX tgn: <http://vocab.getty.edu/tgn/>
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX geo: <http://www.opengis.net/ont/geosparql#>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>
+PREFIX la: <https://linked.art/ns/terms/>
+PREFIX getty: <http://data.getty.edu/local/>
+PREFIX dbo: <http://dbpedia.org/ontology/>
+PREFIX cidoc: <http://www.cidoc-crm.org/cidoc-crm/>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+PREFIX purl: <http://purl.org/dc/elements/1.1/>
+PREFIX gettyth: <https://data.getty.edu/local/thesaurus/>
+
+select distinct ?bingo where {
+    ulan:500009666 skos:exactMatch ?bingo.
+}
