@@ -1,17 +1,18 @@
 <template>
-    <div class="card">
+    <div class="card mt-3 mb-3" style="margin-left: 10%; margin-right: 10%;" >
         <div class="container">
             <div class="row">
-                <div class="col-md-4 col-xl-2">
+                <div class="col-xl-2" style="max-height: 30vh;">
                     <img v-if="result.image != null" :src=result.image style="height: 100%; width: 100%;">
                 </div>
-                <div class="col-md-4 col-xl-8">
+                <div class="col-xl-8">
+                    <span v-if="isArtist" class="badge badge-mine">Artist</span>
+                    <span v-else-if="isArtwork" class="badge badge-mine">Artwork</span>
                     <h4>{{result.name}}</h4>
-                    <h6 class="text-muted mb-2">URI</h6>
                 </div>
-                <div class="col-md-4 col-xl-2">
-                    <button v-if="isArtist" class="btn btn-primary" type="button" @click="goToArtistPage">Go to Artist</button>
-                    <button v-else-if="isArtwork" class="btn btn-primary" type="button" @click="goToArtworkPage">Go to Artwork</button>
+                <div class="col-xl-2">
+                    <button v-if="isArtist" class="btn btn-mine" type="button" @click="goToArtistPage">Go to Artist</button>
+                    <button v-else-if="isArtwork" class="btn btn-mine" type="button" @click="goToArtworkPage">Go to Artwork</button>
                 </div>
             </div>
         </div>

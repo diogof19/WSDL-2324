@@ -1,7 +1,7 @@
 <template>
-  <div>
-    <SearchBar @receivedResponse="handleResponse"/>
-  </div>
+  
+  <SearchBar @receivedResponse="handleResponse"/>
+  <hr v-if="this.searchResults.length != 0" class="ms-5 me-5">
   <div class="col" id="results">
     <SearchResult v-for="(result, index) in searchResults" :key="index" :result="result"/>
   </div>

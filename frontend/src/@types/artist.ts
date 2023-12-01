@@ -10,6 +10,6 @@ export type Artist = {
     biography : Map<string, string>,
     getty_link : string,
     movement : string,
-    wikipedia_ling: string,
+    wikipedia_link: string,
     artworks : string[],
 }

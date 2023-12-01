@@ -1,22 +1,23 @@
 <template>
-  <div class="row">
-    <div class="col" style="width: 50%;" :onkeydown="handleKeyDown">
-        <input type="search" v-model="searchQuery" placeholder="Search..." style="width: 100%;margin: 5px;">
+  <div class="container mt-3 mb-3 p-3">
+    <div class="row mb-3 text-center">
+      <h2 style="color: #a02905;">
+        Search for Artists and Artworks
+      </h2>
     </div>
-    <div class="col-xl-1" style="width: 10%;">
-        <div class="dropdown"><button class="btn btn-primary dropdown-toggle" aria-expanded="false" data-bs-toggle="dropdown" type="button">Dropdown </button>
-            <div class="dropdown-menu">
-                <a class="dropdown-item" href="#">First Item</a>
-                <a class="dropdown-item" href="#">Second Item</a>
-                <a class="dropdown-item" href="#">Third Item</a></div>
-        </div>
-    </div>
-    <div class="col">
-        <button @click="handleSearch" class="btn btn-primary" type="button">Search</button>
+    <div class="row">
+      <div class="col-2">
+      </div>
+      <div class="col-7" style="width: 50%;" :onkeydown="handleKeyDown">
+          <input class="form-control-lg" v-model="searchQuery" type="search" placeholder="Search..." style="width: 100%;border-radius: 15px;border: 1px solid #a02905;">
+      </div>
+      <div class="col-2 text-center">
+          <button @click="handleSearch" class="btn-lg btn-primary" type="button" style="background-color: #a02905; border: 0px; border-radius: 10px; color: whitesmoke;">Search</button>
+      </div>
+      <div class="col-2">
+      </div>
     </div>
   </div>
-  <div class="row"></div>
-    
 </template>
 
 <script lang="ts">

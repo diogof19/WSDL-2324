@@ -310,11 +310,13 @@ Info we want from the artist:
 - Exhibitions (if applicable)   Getty Museum
 
 '''
-def retrieve_artist_info(uris):
+def retrieve_artist_info(uris: dict):
     for key in uris.keys():
         uris[key] = '<%s>' % uris[key]
-        print(uris[key])
     
+    # TO DO: 
+    # - birthPlace may have multiple values
+    # - birthName doesn't always exist
     if 'dbpedia' in uris.keys():
         query = """
         %s
@@ -327,15 +329,19 @@ def retrieve_artist_info(uris):
             ?bPlace dbp:name ?birthPlace.
 
             OPTIONAL {
-                    %s dbo:thumbnail ?image.
-                
-                    %s dbo:deathDate ?deathDate;
-                       dbo:deathPlace ?dPlace.
-                    ?dPlace dbp:name ?deathPlace.
-                    
-                    %s dbo:movement ?movementPage.
-                    ?movementPage rdfs:label ?movement
-                    FILTER langMatches(lang(?movement),'en')
+                %s dbo:thumbnail ?image.
+            }
+            
+            OPTIONAL {
+                %s dbo:deathDate ?deathDate;
+                    dbo:deathPlace ?dPlace.
+                ?dPlace dbp:name ?deathPlace.
+            }
+            
+            OPTIONAL {
+                %s dbo:movement ?movementPage.
+                ?movementPage rdfs:label ?movement.
+                FILTER langMatches(lang(?movement),'en')
             }
 
             %s dbo:abstract ?biography.
@@ -344,7 +350,9 @@ def retrieve_artist_info(uris):
             %s foaf:isPrimaryTopicOf ?wikipediaLink
         }
         """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
-                
+        
+        print(query)
+                        
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
         sparql.setQuery(query)
@@ -375,9 +383,11 @@ def retrieve_artist_info(uris):
             ?identify a crm:E33_E41_Linguistic_Appellation;
                     crm:P190_has_symbolic_content ?name.
 
-            %s crm:P98i_was_born ?born.
-            ?born crm:P4_has_time-span ?birth_timespan.
-            ?birth_timespan crm:P82a_begin_of_the_begin ?birthYear.
+            OPTIONAL {
+                %s crm:P98i_was_born ?born.
+                ?born crm:P4_has_time-span ?birth_timespan.
+                ?birth_timespan crm:P82a_begin_of_the_begin ?birthYear.
+            }
 
             %s crm:P67i_is_referred_to_by ?birth_referred.
             ?birth_referred crm:P2_has_type gettyth:birth-place-description;
@@ -472,3 +482,79 @@ def retrieve_artist_info(uris):
         artist.add_uri('smithsonian', uris['smithsonian'])
         
     return artist
+
+def get_artworks_by_artist(uris: dict):
+    artworks = []
+    
+    for key in uris.keys():
+        uris[key] = '<%s>' % uris[key]
+    
+    # This will probably not be used - we can use all artworks info when the function is done
+    if 'getty' in uris.keys():
+        query = """
+            %s
+            
+            SELECT ?uri ?name ?image WHERE {
+                ?production crm:P14_carried_out_by %s.
+                ?uri crm:P108i_was_produced_by ?production;
+                        crm:P1_is_identified_by ?identify;
+                        crm:P138i_has_representation ?image.
+                ?identify crm:P2_has_type gettyth:object-title-primary;
+                            crm:P190_has_symbolic_content ?name.
+            }
+        """ % (prefixes, uris['getty'])
+        
+        sparql = SPARQLWrapper(endpoints['getty'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        
+        for r in ret["results"]["bindings"]:
+            artwork = Artwork(r['name']['value'])
+            artwork.add_uri('getty', r['uri']['value'])
+            artwork.add_image(r['image']['value'])
+            artworks.append(artwork)
+    
+    return artworks
+
+def get_similar_artists_by_movement(movement: str):
+    artists = []
+    
+    query = """
+        %s
+        
+        SELECT ?uri (SAMPLE(?name) AS ?name) ?image WHERE {
+            ?uri dbo:movement ?movementPage.
+            ?movementPage rdfs:label "%s"@en.
+            
+            ?uri rdf:type dbo:Person, dbo:Artist;
+                 rdfs:label ?name.
+            FILTER (lang(?name) = "en") 
+            
+            OPTIONAL {
+                ?uri dbo:thumbnail ?image.
+            }
+        }
+    """ % (prefixes, movement)
+    
+    print(query)
+    
+    sparql = SPARQLWrapper(endpoints['dbpedia'])
+    sparql.setReturnFormat(JSON)
+    sparql.setQuery(query)
+    
+    ret = sparql.query().convert()
+    
+    for r in ret["results"]["bindings"]:
+        artist = Artist(r['name']['value'])
+        artist.add_uri('dbpedia', r['uri']['value'])
+        
+        if 'image' in r:
+            artist.add_image(r['image']['value'])
+        
+        artists.append(artist)
+        
+    return artists
+    
+    

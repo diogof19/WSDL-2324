@@ -63,7 +63,8 @@ button:focus-visible {
   max-width: auto;
   margin: 0 !important;
   padding: 0 !important;
-  text-align: center;
+  width: 100vw;
+  height: 100vh;
 }
 
 @media (prefers-color-scheme: light) {
@@ -77,4 +78,14 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.badge.badge-mine {
+  background-color: #a02905;
+  color: whitesmoke;
+} 
+
+.btn.btn-mine {
+  background-color: #a02905;
+  color: whitesmoke;
 }

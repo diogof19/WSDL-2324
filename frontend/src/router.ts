@@ -15,6 +15,11 @@ const routes = [
     path: '/artist/:uris',
     name: 'artist',
     component: () => import('./pages/ArtistPage.vue'),
+  },
+  {
+    path: '/artwork/:uris',
+    name: 'artwork',
+    component: () => import('./pages/ArtworkPage.vue'),
   }
 ]
 
