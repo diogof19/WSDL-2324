@@ -44,7 +44,7 @@ async def search(q: Optional[str] = ''):
     return result
 
 @app.get('/similar_artists_movement')
-async def search(q: Optional[str] = ''):
-    result = sparql_queries.get_similar_artists_by_movement(q)
+async def search(uris: Optional[str] = '', movements: Optional[str] = ''):
+    result = sparql_queries.get_similar_artists_by_movements(json.loads(uris), json.loads(movements))
 
     return result

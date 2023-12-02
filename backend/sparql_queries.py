@@ -2,6 +2,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON, XML, CSV
 from models.artist import Artist
 from models.artwork import Artwork
 from globals import BACKUP_DATABASE_HOST
+import copy
 
 import os
 
@@ -133,11 +134,11 @@ def artist_search(search_term):
             OPTIONAL {
                 ?uri dbo:thumbnail ?image.
             }
-            ?redirect dbo:wikiPageRedirects ?uri
-            FILTER (regex(?redirect, ".*%s.*", "i") || regex(?name, ".*%s.*", "i"))
+            
+            FILTER (regex(?name, ".*%s.*", "i"))
             FILTER (lang(?name) = "en")  
         }
-    """ % (prefixes, search_term, search_term)
+    """ % (prefixes, search_term)
     
     search_and_save(query, 'dbpedia', results, Artist)
     
@@ -177,34 +178,6 @@ def artist_search(search_term):
     """ % (prefixes, search_term)
     
     search_and_save(query, 'smithsonian', results, Artist)
-
-    #Wikidata
-    query = """
-        %s
-        
-        SELECT DISTINCT ?uri ?name WHERE {
-            ?uri wdt:P31 ?profession;
-                rdfs:label ?name .
-            ?profession wdt:P31 wd:Q88789639.
-            FILTER regex(?name, ".*%s.*", "i")
-            FILTER (lang(?name) = "en")
-            SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
-        }
-    """ % (prefixes, search_term)
-    
-    '''
-    SELECT DISTINCT ?uri ?name WHERE {
-        ?uri wdt:P106 ?profession.
-        ?profession wdt:P31 wd:Q88789639.
-        ?uri wdt:P31 wd:Q5;
-                rdfs:label ?name .
-
-        FILTER regex(?name, ".*vincent.*", "i")
-        SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
-    } LIMIT 20
-    '''
-
-    #search_and_save(query, 'wikidata', results, Artist)
 
     return results
 
@@ -297,35 +270,101 @@ def artwork_search(search_term):
 
     return results
 
-'''
-Info we want from the artist:
-- Name                          Getty Museum, DBPedia, Smithsonian Museum
-- Birth date                    Getty Museum, DBPedia, Smithsonian Museum
-- Death date (if applicable)    Getty Museum, DBPedia, Smithsonian Museum
-- Birth place                   Getty Museum, DBPedia, Smithsonian Museum
-- Death place (if applicable)   Getty Museum, DBPedia, Smithsonian Museum
-- Description                   Getty Museum, DBPedia, Smithsonian Museum
-- Image (if possible)           Getty Museum, DBPedia,
-- Artworks                      Getty Museum, DBPedia
-- Exhibitions (if applicable)   Getty Museum
-
-'''
 def retrieve_artist_info(uris: dict):
+    original_uris = copy.deepcopy(uris)
     for key in uris.keys():
         uris[key] = '<%s>' % uris[key]
     
-    # TO DO: 
-    # - birthPlace may have multiple values
-    # - birthName doesn't always exist
+    if 'wikidata' in uris.keys():
+        query = """
+            %s
+            
+            SELECT ?name ?birthDate ?birthPlace ?deathDate ?deathPlace ?deathManner ?movement WHERE {
+                { 
+                    SELECT (SAMPLE(?name) as ?name) WHERE {
+                        %s rdfs:label ?name.
+                        FILTER langMatches(lang(?name),'en').
+                    }
+                } 
+                
+                OPTIONAL {
+                    %s wdt:P569 ?birthDate.
+                }
+                
+                OPTIONAL {
+                    { 
+                        SELECT (SAMPLE(?birthPlace) as ?birthPlace) WHERE {
+                            %s wdt:P19 ?bPlace.
+                            ?bPlace rdfs:label ?birthPlace.
+                            FILTER langMatches(lang(?birthPlace),'en').
+                        }
+                    } 
+                }
+                
+                OPTIONAL {
+                    %s wdt:P570 ?deathDate.
+                }
+                
+                OPTIONAL {
+                    { 
+                        SELECT (SAMPLE(?deathPlace) as ?deathPlace) WHERE {
+                            %s wdt:P20 ?dPlace.
+                            ?dPlace rdfs:label ?deathPlace.
+                            FILTER langMatches(lang(?deathPlace),'en').
+                        }
+                    } 
+                }
+                
+                OPTIONAL {
+                    %s wdt:P1196 ?dManner.
+                    ?dManner rdfs:label ?deathManner.
+                    FILTER langMatches(lang(?deathManner),'en').
+                }
+                    
+                OPTIONAL {
+                    { 
+                        SELECT (GROUP_CONCAT(?mov;separator=",") AS ?movement) WHERE {
+                            %s wdt:P135 ?movementPage.
+                            ?movementPage rdfs:label ?mov.
+                            FILTER langMatches(lang(?mov),'en').
+                        }
+                    } 
+                }
+            }
+        """ % (prefixes, uris['wikidata'], uris['wikidata'], uris['wikidata'], uris['wikidata'], uris['wikidata'], uris['wikidata'], uris['wikidata'])
+        
+        sparql = SPARQLWrapper(endpoints['wikidata'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        artist_result = ret["results"]["bindings"][0]
+        
+        artist = Artist(artist_result['name']['value'])    
+        artist.add_uri('wikidata', original_uris['wikidata'])
+        artist.add_birth_date(artist_result['birthDate']['value'].split('T')[0])
+        artist.add_birth_place(artist_result['birthPlace']['value'])
+        if 'deathDate' in artist_result:
+            artist.add_death_date(artist_result['deathDate']['value'].split('T')[0])
+        if 'deathPlace' in artist_result:
+            artist.add_death_place(artist_result['deathPlace']['value'])
+        if 'deathManner' in artist_result:
+            artist.add_death_manner(artist_result['deathManner']['value'])
+        if 'movement' in artist_result:
+            movements = artist_result['movement']['value'].split(',')
+            for movement in movements:
+                artist.add_movement(movement)
+    
     if 'dbpedia' in uris.keys():
         query = """
         %s
         
-        SELECT ?name ?image ?birthDate ?birthPlace ?deathDate ?deathPlace ?biography ?wikipediaLink ?movement WHERE {
-            %s dbo:birthName ?name;
-               dbo:birthDate ?birthDate;
-               dbo:birthPlace ?bPlace.
-               
+        SELECT (SAMPLE(?name) AS ?name) ?image ?birthDate (SAMPLE(?birthPlace) AS ?birthPlace) ?deathDate ?deathPlace ?biography ?wikipediaLink ?movement WHERE {
+            %s rdfs:label ?name.
+            
+            %s dbo:birthDate ?birthDate.
+            
+            %s dbo:birthPlace ?bPlace.
             ?bPlace dbp:name ?birthPlace.
 
             OPTIONAL {
@@ -339,9 +378,13 @@ def retrieve_artist_info(uris: dict):
             }
             
             OPTIONAL {
-                %s dbo:movement ?movementPage.
-                ?movementPage rdfs:label ?movement.
-                FILTER langMatches(lang(?movement),'en')
+                { 
+                    SELECT (GROUP_CONCAT(?mov;separator=",") AS ?movement) WHERE {
+                        %s dbo:movement ?movementPage.
+                    ?movementPage rdfs:label ?mov.
+                    FILTER langMatches(lang(?mov),'en').
+                    }
+                } 
             }
 
             %s dbo:abstract ?biography.
@@ -349,10 +392,9 @@ def retrieve_artist_info(uris: dict):
 
             %s foaf:isPrimaryTopicOf ?wikipediaLink
         }
-        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
-        
+        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
+
         print(query)
-                        
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
         sparql.setQuery(query)
@@ -360,19 +402,23 @@ def retrieve_artist_info(uris: dict):
         ret = sparql.query().convert()
         artist_result = ret["results"]["bindings"][0]
         
-        artist = Artist(artist_result['name']['value'])    
-        artist.add_uri('dbpedia', uris['dbpedia'])
-        artist.add_birth_date(artist_result['birthDate']['value'])
-        artist.add_birth_place(artist_result['birthPlace']['value'])
-        if 'deathDate' in artist_result:
-            artist.add_death_date(artist_result['deathDate']['value'])
-        if 'deathPlace' in artist_result:
-            artist.add_death_place(artist_result['deathPlace']['value'])
+        if 'artist' not in locals():
+            artist = Artist(artist_result['name']['value'])    
+            artist.add_birth_date(artist_result['birthDate']['value'])
+            artist.add_birth_place(artist_result['birthPlace']['value'])
+            if 'deathDate' in artist_result:
+                artist.add_death_date(artist_result['deathDate']['value'])
+            if 'deathPlace' in artist_result:
+                artist.add_death_place(artist_result['deathPlace']['value'])
+        
         artist.add_biography('dbpedia', artist_result['biography']['value'])
-        artist.add_movement(artist_result['movement']['value'])
+        if 'movement' in artist_result:
+            movements = artist_result['movement']['value'].split(',')
+            for movement in movements:
+                artist.add_movement(movement)
         artist.add_wikipedia_link(artist_result['wikipediaLink']['value'])
         artist.add_image(artist_result['image']['value'])
-    
+        artist.add_uri('dbpedia', original_uris['dbpedia'])
     
     if 'getty' in uris.keys():
         query = """
@@ -431,7 +477,7 @@ def retrieve_artist_info(uris: dict):
             if 'deathPlace' in artist_result:
                 artist.add_death_place(artist_result['deathPlace']['value'])
         
-        artist.add_uri('getty', uris['getty'])
+        artist.add_uri('getty', original_uris['getty'])
         artist.add_biography('getty', artist_result['biography']['value'])
         artist.add_getty_link(artist_result['gettyLink']['value'])
         
@@ -479,7 +525,7 @@ def retrieve_artist_info(uris: dict):
                 artist.add_death_place(artist_result['deathPlace']['value'])
         
         artist.add_biography('smithsonian', artist_result['biography']['value'])
-        artist.add_uri('smithsonian', uris['smithsonian'])
+        artist.add_uri('smithsonian', original_uris['smithsonian'])
         
     return artist
 
@@ -518,42 +564,60 @@ def get_artworks_by_artist(uris: dict):
     
     return artworks
 
-def get_similar_artists_by_movement(movement: str):
+def get_similar_artists_by_movements(artist_uris, movements):
+    artists = set()
+    
+    for movement in movements:
+        sim_artists = get_similar_artists_by_movement(artist_uris, movement)
+        
+        artists.update(sim_artists)
+                        
+    return artists
+
+def get_similar_artists_by_movement(artist_uris, movement):
     artists = []
     
-    query = """
-        %s
-        
-        SELECT ?uri (SAMPLE(?name) AS ?name) ?image WHERE {
-            ?uri dbo:movement ?movementPage.
-            ?movementPage rdfs:label "%s"@en.
+    if 'dbpedia' in artist_uris.keys():
+        query = """
+            %s
             
-            ?uri rdf:type dbo:Person, dbo:Artist;
-                 rdfs:label ?name.
-            FILTER (lang(?name) = "en") 
-            
-            OPTIONAL {
-                ?uri dbo:thumbnail ?image.
+            SELECT ?uri (SAMPLE(?name) AS ?name) ?image WHERE {
+                ?uri dbo:movement ?movementPage.
+                ?movementPage rdfs:label "%s"@en.
+                
+                ?uri rdf:type dbo:Person, dbo:Artist;
+                    rdfs:label ?name.
+                FILTER (lang(?name) = "en") 
+                
+                OPTIONAL {
+                    ?uri dbo:thumbnail ?image.
+                }
             }
-        }
-    """ % (prefixes, movement)
-    
-    print(query)
-    
-    sparql = SPARQLWrapper(endpoints['dbpedia'])
-    sparql.setReturnFormat(JSON)
-    sparql.setQuery(query)
-    
-    ret = sparql.query().convert()
-    
-    for r in ret["results"]["bindings"]:
-        artist = Artist(r['name']['value'])
-        artist.add_uri('dbpedia', r['uri']['value'])
+        """ % (prefixes, movement)
         
-        if 'image' in r:
-            artist.add_image(r['image']['value'])
+        sparql = SPARQLWrapper(endpoints['dbpedia'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
         
-        artists.append(artist)
+        ret = sparql.query().convert()
+        
+        """ for r in ret["results"]["bindings"]:
+            name = r["name"]["value"]
+
+            result = artist_search(name)
+            print(f"{name}: {len(result)}") """
+                    
+        for r in ret["results"]["bindings"]:
+            if(r['uri']['value'] == artist_uris['dbpedia']):
+                continue
+            
+            artist = Artist(r['name']['value'])
+            artist.add_uri('dbpedia', r['uri']['value'])
+            
+            if 'image' in r:
+                artist.add_image(r['image']['value'])
+            
+            artists.append(artist)
         
     return artists
     

@@ -7,9 +7,10 @@ export type Artist = {
     birth_place : string,
     death_date : Date | null,
     death_place : string | null,
+    death_manner : string | null,
     biography : Map<string, string>,
     getty_link : string,
-    movement : string,
+    movements : string[],
     wikipedia_link: string,
     artworks : string[],
 }

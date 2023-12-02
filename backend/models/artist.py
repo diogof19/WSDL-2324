@@ -4,14 +4,16 @@ from models.result import Result
 class Artist(Result):
     def __init__(self, name) -> None:
         super().__init__('artist', name)
+        self.uris = {}
         self.image = None
         self.birth_date = None
         self.birth_place = None
         self.death_date = None
         self.death_place = None
+        self.death_manner = None
         self.biography = {}
         self.getty_link = None
-        self.movement = None
+        self.movements = []
         self.wikipedia_link = None
         self.artworks = []
         
@@ -36,6 +38,9 @@ class Artist(Result):
         
     def add_death_place(self, death_place):
         self.death_place = death_place
+    
+    def add_death_manner(self, death_manner):
+        self.death_manner = death_manner
         
     def add_biography(self, endpoint, biography):
         self.biography[endpoint] = biography
@@ -47,7 +52,8 @@ class Artist(Result):
         self.artworks.append(artwork)
         
     def add_movement(self, movement):
-        self.movement = movement
+        if movement not in self.movements:
+            self.movements.append(movement)
         
     def add_wikipedia_link(self, wikipedia_link):
         self.wikipedia_link = wikipedia_link
