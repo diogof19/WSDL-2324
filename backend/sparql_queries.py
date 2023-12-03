@@ -44,9 +44,10 @@ prefixes = """
     PREFIX purl: <http://purl.org/dc/elements/1.1/>
     PREFIX gettyth: <https://data.getty.edu/local/thesaurus/>
     PREFIX dbp: <http://dbpedia.org/property/>
+    PREFIX dcterms: <http://purl.org/dc/terms/>
 """
 
-def search_and_save(query, endpoint_name, results, result_type):
+def search_and_save(query : str, endpoint_name : str, results : list[Artist | Artwork], result_type : type) -> None:
     sparql = SPARQLWrapper(endpoints[endpoint_name])
     sparql.setReturnFormat(JSON)
     sparql.setQuery(query)
@@ -72,8 +73,6 @@ def search_and_save(query, endpoint_name, results, result_type):
             sparql.setQuery(query)
 
             ret_2 = sparql.query().convert()
-
-            print(ret_2)
 
             match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
 
@@ -108,13 +107,11 @@ def search_and_save(query, endpoint_name, results, result_type):
 
         if 'wikidata' in r:
             artist.add_uri('wikidata', r['wikidata']['value'])
-        else:
-            print(r)
         
         results.append(artist)
         
 
-def artist_search(search_term):
+def artist_search(search_term : str) -> list[Artist]:
     results = []
 
     search_term = '.*'.join(search_term.split(' '))
@@ -208,7 +205,7 @@ def artist_search(search_term):
 
     return results
 
-def artwork_search(search_term):
+def artwork_search(search_term : str) -> list[Artwork]:
     results = []
 
     search_term = '.*'.join(search_term.split(' '))
@@ -250,33 +247,30 @@ def artwork_search(search_term):
                 ?uri getty:thumbnailUrl ?image.
             }
             FILTER regex(?name, ".*%s.*", "i")
-            FILTER (lang(?name) = "en")
         }
     """ %  (prefixes, search_term)
 
-    #search_and_save(query, 'getty', results, Artwork)
+    search_and_save(query, 'getty', results, Artwork)
 
-    #Smithsonian Museum 
-    #TODO: I don't know if this is the right query has_representation does seem to work
+    #Smithsonian Museum
     query = """
         %s
         
-        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) ?image WHERE {
-            ?uri rdf:type cidoc:E22_Man-Made_Object;
-                rdfs:label ?name.
+        SELECT DISTINCT ?uri ?name ?image ?dbpedia WHERE {
+            ?uri rdf:type cidoc:E22_Man-Made_Object; cidoc:P102_has_title ?title.
+            ?title rdfs:label ?name.
             OPTIONAL {
-                ?uri owl:sameAs ?dbpedia;
+                ?uri owl:sameAs ?dbpedia.
                 FILTER regex(?dbpedia, "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
             }
             OPTIONAL {
                 ?uri cidoc:P138i_has_representation ?image.
             }
             FILTER regex(?name, ".*%s.*", "i")
-            FILTER (lang(?name) = "en")
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'smithsonian', results, Artwork)
+    search_and_save(query, 'smithsonian', results, Artwork)
 
     #Wikidata
     query = """
@@ -350,8 +344,6 @@ def retrieve_artist_info(uris: dict):
             %s foaf:isPrimaryTopicOf ?wikipediaLink
         }
         """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
-        
-        print(query)
                         
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
@@ -538,8 +530,6 @@ def get_similar_artists_by_movement(movement: str):
         }
     """ % (prefixes, movement)
     
-    print(query)
-    
     sparql = SPARQLWrapper(endpoints['dbpedia'])
     sparql.setReturnFormat(JSON)
     sparql.setQuery(query)
@@ -557,4 +547,67 @@ def get_similar_artists_by_movement(movement: str):
         
     return artists
     
-    
+def get_artworks_with_same_subject(artwork : Artwork) -> list[Artwork]:
+    artworks = []
+
+    if 'dbpedia' in artwork.uris:
+        query = """
+            %s
+
+            SELECT DISTINCT ?uri ?name ?image ?wikidata WHERE {
+                <%s> dcterms:subject ?subject.
+                ?uri dcterms:subject ?subject; rdf:type dbo:Artwork;
+                    rdfs:label ?name.
+                OPTIONAL {
+                    ?uri dbo:thumbnail ?image.
+                }
+                OPTIONAL {
+                    ?uri owl:sameAs ?wikidata.
+                    FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
+                }
+                FILTER (lang(?name) = "en")
+            }
+        """ % (prefixes, artwork.uris['dbpedia'])
+
+        search_and_save(query, 'dbpedia', artworks, Artwork)
+
+    for artwork in artworks:
+        print(artwork.name)
+
+    return artworks
+
+def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
+    artworks = []
+
+    if 'getty' in artwork.uris:
+        query = """
+            %s
+
+            SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
+                <%s> la:member_of ?exhibition.
+                ?uri la:member_of ?exhibition; rdf:type crm:E22_Human-Made_Object;
+                    rdfs:label ?name.
+                OPTIONAL {
+                    ?uri skos:exactMatch ?exact_match.
+                    FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
+                }
+                OPTIONAL {
+                    ?uri getty:thumbnailUrl ?image.
+                }
+            }
+        """ % (prefixes, artwork.uris['getty'])
+
+        search_and_save(query, 'getty', artworks, Artwork)
+
+    for artwork in artworks:
+        print(artwork.name)
+
+    return artworks
+
+if __name__ == '__main__':
+    artworks = artwork_search('fight like a girl')
+
+    print([(artwork.name, artwork.uris) for artwork in artworks])
+
+    # get_artworks_with_same_subject(artworks[0])
+    get_exhibited_with_getty(artworks[0])
