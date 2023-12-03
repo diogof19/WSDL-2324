@@ -75,7 +75,8 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
 
             ret_2 = sparql.query().convert()
 
-            match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
+            if len(ret_2['results']['bindings']) > 0:
+                match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
 
         found = False
 
@@ -84,13 +85,14 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
                 found = True
 
                 result.add_uri(endpoint_name, r['uri']['value'])
+                result.add_uri('getty_vocab', r['exact_match']['value'])
 
                 if 'image' in r and (not result.has_image() or 'Redirect/file' in result.image):
                     result.add_image(r['image']['value'])
-            elif endpoint_name == 'saam' and r['dbpedia']['value'] == result.uris['dbpedia']:
+            elif endpoint_name == 'smithsonian' and r['dbpedia']['value'] == result.uris['dbpedia']:
                 found = True
 
-                result.add_uri(endpoint_name, r['saam']['value'])
+                result.add_uri(endpoint_name, r['uri']['value'])
 
                 if 'image' in r and (not result.has_image() or 'Redirect/file' in result.image):
                     result.add_image(r['image']['value'])
@@ -672,9 +674,28 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
     return artworks
 
 if __name__ == '__main__':
-    artworks = artwork_search('fight like a girl')
+    # artworks = artwork_search('fight like a girl')
 
-    print([(artwork.name, artwork.uris) for artwork in artworks])
+    # print([(artwork.name, artwork.uris) for artwork in artworks])
 
     # get_artworks_with_same_subject(artworks[0])
-    get_exhibited_with_getty(artworks[0])
+    # get_exhibited_with_getty(artworks[0])
+
+    artists = artist_search('vincent van gogh')
+
+    for artist in artists:
+        print(artist.name)
+        print(artist.uris)
+        print()
+
+    artists_by_name  = {}
+
+    # for artist in artists:
+    #     if artist.name not in artists_by_name:
+    #         artists_by_name[artist.name] = []
+
+    #     artists_by_name[artist.name].append(artist)
+
+    # for name in artists_by_name:
+    #     print(f"{name}: {artists_by_name[name]}")
+        
