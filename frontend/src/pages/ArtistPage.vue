@@ -76,6 +76,14 @@
                     {{ this.artist.death_place }}
                 </nobr>
             </div>
+            <div v-if="this.artist.death_manner != null" class="row ms-1">
+                <nobr>
+                    <b>
+                        Manner: 
+                    </b>
+                    {{ this.artist.death_manner }}
+                </nobr>
+            </div>
         </div>
     </div>
   </div>
@@ -99,7 +107,7 @@
     </div>
 
   </div>
-  <div v-if="this.artist.movement!=null" class="card container mt-5 mb-5">
+  <div v-if="this.similarArtists.length > 0" class="card container mt-5 mb-5">
     <div class="row ms-1">
         <h5 style="color: #a02905;">
             Artists with the same Artistic Movement
@@ -144,7 +152,7 @@
         await this.getArtistInfo();
         await this.getArtworks();
 
-        if (this.artist.movement != null)
+        if (this.artist.movements.length > 0)
             await this.getSimilarArtistByMovement();
       },
       methods: {
@@ -162,6 +170,10 @@
         handleArtistData(artist: Artist) {
             this.artist = artist;
             console.log(this.artist);
+
+            if (this.artist.death_manner != null){
+                this.artist.death_manner = this.artist.death_manner[0].toUpperCase() + this.artist.death_manner.slice(1);
+            }
 
             //This says it's wrong and has errors but it's fully working and the suggestions don't work
             if (this.artist.biography['getty'] != null && this.artist.getty_link != null){
@@ -201,17 +213,32 @@
         async getSimilarArtistByMovement(){
             await axios.get('http://localhost:8000/similar_artists_movement', {
                 params: {
-                    q: this.artist.movement
+                    uris: JSON.stringify(this.artist.uris),
+                    movements: JSON.stringify(this.artist.movements)
                 }
             }).then(response => {
                 this.similarArtists = response.data;
+                console.log(this.similarArtists);
             }).catch(error => {
                 console.log(error);
             });
         },
         goToArtistPage(artist: Artist){
             console.log(artist);
-            this.$router.push({ name: 'artist', params: { uris: JSON.stringify(artist.uris) } });
+            // Artist search
+            axios.get('http://localhost:8000/artist_search', {
+                params: {
+                q: artist.name,
+                }
+            }).then(response => {
+                console.log(response.data);
+            
+                if (response.data.length > 0)
+                    this.$router.push({ name: 'artist', params: { uris: JSON.stringify(response.data[0].uris) } });
+            }).catch(error => {
+                console.log(error);
+            });
+            
         }
       }
   });
