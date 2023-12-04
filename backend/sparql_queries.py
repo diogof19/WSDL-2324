@@ -89,7 +89,7 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
 
                 if 'image' in r and (not result.has_image() or 'Redirect/file' in result.image):
                     result.add_image(r['image']['value'])
-            elif endpoint_name == 'smithsonian' and r['dbpedia']['value'] == result.uris['dbpedia']:
+            elif endpoint_name == 'smithsonian' and 'dbpedia' in result.uris and 'dbpedia' in r and r['dbpedia']['value'] == result.uris['dbpedia']:
                 found = True
 
                 result.add_uri(endpoint_name, r['uri']['value'])
@@ -114,30 +114,30 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
         results.append(artist)
         
 
-def artist_search(search_term : str) -> list[Artist]:
+def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]:
     results = []
 
     search_term = '.*'.join(search_term.split(' '))
     
     #DBPedia
-    query = """
-        %s
+    filter_expression = 'regex(?name, ".*%s.*", "i")' % search_term + (' || regex(?redirect, ".*%s.*", "i")' % search_term if not exact_match else '')
 
-        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) ?image ?wikidata WHERE {
-            ?uri rdf:type dbo:Person, dbo:Artist;
-                rdfs:label ?name.
-            OPTIONAL {
-                ?uri owl:sameAs ?wikidata.
-                FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
-            }
-            OPTIONAL {
-                ?uri dbo:thumbnail ?image.
-            }
-            
-            FILTER (regex(?name, ".*%s.*", "i"))
-            FILTER (lang(?name) = "en")  
-        }
-    """ % (prefixes, search_term)
+    query = (
+        '%s\n\n' % prefixes +
+        f'SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) ?image ?wikidata WHERE {{\n'
+        f'?uri rdf:type dbo:Person, dbo:Artist; rdfs:label ?name.\n'
+        f'OPTIONAL {{\n'
+        f'?uri owl:sameAs ?wikidata.\n'
+        f'FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")\n'
+        f'}}\n'
+        f'OPTIONAL {{\n'
+        f'?uri dbo:thumbnail ?image.\n'
+        f'}}\n'
+        f'{"" if exact_match else "?redirect dbo:wikiPageRedirects ?uri"}\n'
+        f'FILTER ({filter_expression})\n'
+        f'FILTER (lang(?name) = "en")\n'
+        f'}}'
+    )
     
     search_and_save(query, 'dbpedia', results, Artist)
     
@@ -156,7 +156,7 @@ def artist_search(search_term : str) -> list[Artist]:
         }
     """ % (prefixes, search_term)
     
-    search_and_save(query, 'getty', results, Artist)
+    #search_and_save(query, 'getty', results, Artist)
     
     #Smithsonian Museum
     
@@ -225,7 +225,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
         }
     """ %  (prefixes, search_term)
 
-    search_and_save(query, 'getty', results, Artwork)
+    #search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
     query = """
