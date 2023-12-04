@@ -4,8 +4,6 @@ from models.result import Result
 class Artist(Result):
     def __init__(self, name) -> None:
         super().__init__('artist', name)
-        self.uris = {}
-        self.image = None
         self.birth_date = None
         self.birth_place = None
         self.death_date = None

@@ -60,8 +60,8 @@ export default defineComponent({
             //this.goToRoot();
         },
         goToArtworkPage() {
-            //this.$router.push({name: 'ArtworkPage', params: {id: this.artwork.id}});
-            this.goToRoot();
+            this.$router.push({name: 'artwork', params: {uris: JSON.stringify(this.artwork.uris)}});
+            //this.goToRoot();
         },
         goToRoot() {
             this.$router.push({name: 'home'});

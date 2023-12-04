@@ -135,7 +135,6 @@ def artist_search(search_term : str) -> list[Artist]:
             OPTIONAL {
                 ?uri dbo:thumbnail ?image.
             }
-            
             FILTER (regex(?name, ".*%s.*", "i"))
             FILTER (lang(?name) = "en")  
         }
@@ -158,7 +157,7 @@ def artist_search(search_term : str) -> list[Artist]:
         }
     """ % (prefixes, search_term)
     
-    search_and_save(query, 'getty', results, Artist)
+    #search_and_save(query, 'getty', results, Artist)
     
     #Smithsonian Museum
     
@@ -185,7 +184,7 @@ def artist_search(search_term : str) -> list[Artist]:
         SELECT DISTINCT ?uri (SAMPLE(?name) as ?name)  WHERE {
             ?uri rdf:type cidoc:E21_Person;
                     cidoc:P1_is_identified_by ?dName.
-            FILTER regex(?uri, "^person-institution/.*")
+            FILTER regex(?uri, "^http.*")
             
             ?dName rdfs:label ?name.
             FILTER regex(?name, ".*%s.*", "i")
@@ -228,8 +227,15 @@ def artwork_search(search_term : str) -> list[Artwork]:
         %s
 
         SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
-            ?uri rdf:type crm:E22_Human-Made_Object;
-                rdfs:label ?name.
+            ?uri rdf:type crm:E22_Human-Made_Object.
+            
+            {
+    			SELECT (SAMPLE(?name) as ?name) {
+      				?uri rdfs:label ?name.
+      				FILTER regex(?name, ".*%s.*", "i")
+    			}
+  			}
+            
             OPTIONAL {
                 ?uri skos:exactMatch ?exact_match.
                 FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
@@ -237,17 +243,17 @@ def artwork_search(search_term : str) -> list[Artwork]:
             OPTIONAL {                
                 ?uri getty:thumbnailUrl ?image.
             }
-            FILTER regex(?name, ".*%s.*", "i")
         }
     """ %  (prefixes, search_term)
-
-    search_and_save(query, 'getty', results, Artwork)
+    #print(query)
+    
+    #search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
     query = """
         %s
         
-        SELECT DISTINCT ?uri ?name ?image ?dbpedia WHERE {
+        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) (SAMPLE(?image) AS ?image) ?dbpedia WHERE {
             ?uri rdf:type cidoc:E22_Man-Made_Object; cidoc:P102_has_title ?title.
             ?title rdfs:label ?name.
             OPTIONAL {
@@ -257,6 +263,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
             OPTIONAL {
                 ?uri cidoc:P138i_has_representation ?image.
             }
+            FILTER regex(?uri, "^http.*")
             FILTER regex(?name, ".*%s.*", "i")
         }
     """ % (prefixes, search_term)
@@ -626,6 +633,88 @@ def retrieve_artist_info(uris: dict):
         
     return artist
 
+def retrieve_artwork_info(uris: dict):
+    print(type(uris))
+    if 'dbpedia' in uris.keys():
+        query = """
+            %s
+            
+            SELECT (SAMPLE(?name) AS ?name) ?image ?year ?description ?authorName ?authorUri ?wikipediaLink ?museumName WHERE {
+                <%s> rdfs:label ?name.
+                FILTER langMatches(lang(?name),'en').
+
+                OPTIONAL {
+                    <%s> dbp:year ?year.
+                }
+                
+                OPTIONAL {
+                    <%s> dbo:thumbnail ?image.
+                }
+
+                OPTIONAL {
+                    <%s> dbo:abstract ?description.
+                    FILTER langMatches(lang(?description),'en').
+                }
+
+                OPTIONAL {
+                    <%s> foaf:isPrimaryTopicOf ?wikipediaLink.
+                }
+
+               OPTIONAL {
+                    <%s> dbo:author ?authorUri.
+                    ?authorUri rdfs:label ?authorName.  
+                    FILTER langMatches(lang(?authorName),'en').
+               }
+
+               OPTIONAL {
+                    {
+                        SELECT (GROUP_CONCAT(?mName;separator=",") AS ?museumName) {
+                            <%s> dbo:museum ?museumUri.
+                            ?museumUri dbp:name ?mName.
+                            FILTER langMatches(lang(?mName),'en').
+                        }
+                    
+                    }
+                }
+            }
+        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
+        
+        sparql = SPARQLWrapper(endpoints['dbpedia'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        artwork_result = ret["results"]["bindings"][0]
+        
+        artwork = Artwork(artwork_result['name']['value'])
+        artwork.add_uri('dbpedia', uris['dbpedia'])
+        
+        if 'year' in artwork_result:
+            artwork.year = artwork_result['year']['value']
+            
+        if 'description' in artwork_result:
+            artwork.description["dbpedia"] = artwork_result['description']['value']
+            
+        if 'authorName' in artwork_result:
+            artwork.authorName = artwork_result['authorName']['value']
+            
+        if 'authorUri' in artwork_result:
+            artwork.authorUri["dbpedia"] = artwork_result['authorUri']['value']
+        
+        if 'wikipediaLink' in artwork_result:
+            artwork.wikipedia_link = artwork_result['wikipediaLink']['value']
+        
+        if 'image' in artwork_result:
+            artwork.image = artwork_result['image']['value']
+        
+        museumsList = artwork_result['museumName']['value'].split(',')
+        if len(museumsList) != 1 and museumsList[0] != '' :
+            artwork.museumName = museumsList
+            
+            
+    
+    return artwork
+    
 def get_artworks_by_artist(uris: dict):
     artworks = []
     

@@ -1,7 +1,7 @@
-<template>
-    <hr class="m-0">
-    <footer class="footer-fluid mt-0 py-3 bg-light" style="width:100%;">
-        <div class="container">
+<template >
+    <footer class="footer-fluid mt-0 mb-3 bg-light" style="width:100%;position:fixed; bottom:0px;">
+        <hr class="m-0">
+        <div class="container mt-3">
             <div class="row">
                 <div class="col-lg-6 text-center text-lg-start my-auto h-100">
                     <ul class="list-inline mb-2">
