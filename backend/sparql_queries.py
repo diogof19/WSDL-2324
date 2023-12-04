@@ -157,7 +157,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'getty', results, Artist)
+    search_and_save(query, 'getty', results, Artist)
     
     #Smithsonian Museum
     
@@ -240,7 +240,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
         }
     """ %  (prefixes, search_term)
 
-    #search_and_save(query, 'getty', results, Artwork)
+    search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
     query = """
@@ -812,6 +812,7 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
     artworks = []
 
     if 'getty' in artwork.uris:
+        print(artwork.uris['getty'])
         query = """
             %s
 
@@ -833,25 +834,84 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
 
     for artwork in artworks:
         print(artwork.name)
-
-    return artworks
-
-if __name__ == '__main__':
-    # artworks = artwork_search('fight like a girl')
-
-    # print([(artwork.name, artwork.uris) for artwork in artworks])
-
-    # get_artworks_with_same_subject(artworks[0])
-    # get_exhibited_with_getty(artworks[0])
-
-    artists = artist_search('vincent van gogh')
-
-    for artist in artists:
-        print(artist.name)
-        print(artist.uris)
+        print(artwork.uris)
         print()
 
-    artists_by_name  = {}
+    results = []
+
+    for artwork in artworks:
+        results.append(get_dbpedia_info_for_getty(artwork))
+
+    for result in results:
+        print(result.name)
+        print(result.uris)
+        print()
+
+    return results
+
+def get_dbpedia_info_for_getty(artwork : Artwork) -> Artwork:
+    results = [artwork]
+
+    if 'getty' in artwork.uris:
+        match_id = None
+
+        if 'exact_match' in artwork.uris:
+            query = """
+                %s
+
+                SELECT DISTINCT ?exact_match WHERE {
+                    <%s> skos:exactMatch ?exact_match.
+                    FILTER regex(str(?exact_match),"^https:\\\\/\\\\/wikidata\\\\.org\\\\/.*", "i")
+                }
+            """ % (prefixes, artwork.uris['exact_match'])
+
+            sparql = SPARQLWrapper(endpoints['getty_vocab'])
+            sparql.setReturnFormat(JSON)
+            sparql.setQuery(query)
+
+            ret = sparql.query().convert()
+
+            if len(ret['results']['bindings']) > 0:
+                match_id = ret['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
+
+        query = """
+            %s
+
+            SELECT DISTINCT ?uri ?name ?image WHERE {
+                ?uri owl:sameAs ?wikidata.
+                FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*/%s", "i")
+                ?uri rdf:type dbo:Artwork;
+                    rdfs:label ?name.
+                OPTIONAL {
+                    ?uri dbo:thumbnail ?image.
+                }
+                FILTER (lang(?name) = "en")
+            }
+        """ % (prefixes, match_id)
+
+        if match_id:
+            search_and_save(query, 'dbpedia', results, Artwork)
+
+    return results[0]
+
+if __name__ == '__main__':
+    artworks = artwork_search('girl')
+
+    #print([(artwork.name, artwork.uris) for artwork in artworks])
+
+    # get_artworks_with_same_subject(artworks[0])
+    for artwork in artworks:
+        if 'getty' in artwork.uris:
+            get_exhibited_with_getty(artworks[0])
+
+    # artists = artist_search('vincent van gogh')
+
+    # for artist in artists:
+    #     print(artist.name)
+    #     print(artist.uris)
+    #     print()
+
+    # artists_by_name  = {}
 
     # for artist in artists:
     #     if artist.name not in artists_by_name:
