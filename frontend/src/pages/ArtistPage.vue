@@ -2,7 +2,7 @@
   <div class="card container mt-5 mb-3">
     <div class="row">
         <div class="col-5">
-            <div class="row align-items-center">
+            <div class="row align-items-center" style="min-height: 20vh;">
                 <div class="col-6 text-center" >
                     <span style="color: grey">Artist</span>
                     <h2>{{ artist.name }}</h2>
@@ -12,7 +12,7 @@
                 </div>
             </div>
         </div>
-        <div class="col col-lg-7" >
+        <div v-if="this.keys.length > 0" class="col col-lg-7" >
             <nav>
                 <div class="nav nav-tabs" id="nav-tab" role="tablist">
                     <button v-for="key in this.keys" class="nav-link" :class="{'active' : this.keys[0] === key}" :id="'nav-tab-'+key" data-bs-toggle="tab" :data-bs-target="'#nav-contact-'+key" type="button" role="tab" :aria-controls="'nav-contact-'+key" aria-selected="false" style="color: #a02905;">
@@ -31,13 +31,13 @@
     </div>
     <hr>
     <div class="row">
-        <div class="col-6">
+        <div v-if="this.artist.birth_date != null || this.artist.birth_place != null" class="col-6">
             <div class="row ms-1">
                 <h5 style="color: #a02905;">
                     Birth
                 </h5>
             </div>
-            <div class="row ms-1">
+            <div v-if="this.artist.birth_date != null" class="row ms-1">
                 <nobr>
                     <b>
                         Date: 
@@ -45,7 +45,7 @@
                     {{ this.artist.birth_date }}
                 </nobr>
             </div>
-            <div class="row ms-1">
+            <div v-if="this.artist.birth_place != null" class="row ms-1">
                 <nobr>
                     <b>
                         Place: 
@@ -54,13 +54,13 @@
                 </nobr>
             </div>
         </div>
-        <div v-if="this.artist.death_date != null" class="col-6">
+        <div v-if="this.artist.death_date != null || this.artist.death_place != null" class="col-6">
             <div class="row ms-1">
                 <h5 style="color: #a02905;">
                     Death
                 </h5>
             </div>
-            <div class="row ms-1">
+            <div v-if="this.artist.death_date != null" class="row ms-1">
                 <nobr>
                     <b>
                         Date: 
@@ -68,7 +68,7 @@
                     {{ this.artist.death_date }}
                 </nobr>
             </div>
-            <div class="row ms-1">
+            <div v-if="this.artist_death_place != null" class="row ms-1">
                 <nobr>
                     <b>
                         Place: 
@@ -87,7 +87,7 @@
         </div>
     </div>
   </div>
-  <div class="card container mt-5 mb-5">
+  <div v-if="this.artist.artworks.length > 0" class="card container mt-5 mb-5">
     <div class="row ms-1">
         <h5 style="color: #a02905;">
             Artworks
@@ -169,7 +169,6 @@
         },
         handleArtistData(artist: Artist) {
             this.artist = artist;
-            console.log(this.artist);
 
             if (this.artist.death_manner != null){
                 this.artist.death_manner = this.artist.death_manner[0].toUpperCase() + this.artist.death_manner.slice(1);
@@ -224,8 +223,6 @@
             });
         },
         goToArtistPage(artist: Artist){
-            console.log(artist);
-            // Artist search
             axios.get('http://localhost:8000/artist_search', {
                 params: {
                 q: artist.name,
