@@ -54,7 +54,7 @@
                 </nobr>
             </div>
         </div>
-        <div v-if="this.artwork.museumName.length > 0" class="col-6">
+        <div v-if="this.artwork.museumName!.length > 0" class="col-6">
             <div class="row ms-1">
                 <h5 style="color: #a02905;">
                     Museum
@@ -68,6 +68,46 @@
         </div>
     </div>
     </div>
+    <div v-if="this.dbpediaSameSubject.length > 0" class="card container mt-5 mb-5">
+    <div class="row ms-1">
+        <h5 style="color: #a02905;">
+            Artworks
+        </h5>
+    </div>
+    <div class="row ps-4 flex-nowrap overflow-auto">
+        <div v-for="artwork in this.dbpediaSameSubject" class="card col-2 me-4 mt-3" @click="goToArtworkPage(artwork)" style="cursor:pointer;">
+            <div class="row">
+                <img :src="artwork.image" style="width: 100%; height: 100%;">
+            </div>
+            <div class="row text-center mt-2">
+                <span style="color: #a02905;">
+                    {{ artwork.name }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+  </div>
+  <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-5">
+    <div class="row ms-1">
+        <h5 style="color: #a02905;">
+            Artworks
+        </h5>
+    </div>
+    <div class="row ps-4 flex-nowrap overflow-auto">
+        <div v-for="artwork in this.exhibitedWith" class="card col-2 me-4 mt-3" @click="goToArtworkPage(artwork)" style="cursor:pointer;">
+            <div class="row">
+                <img :src="artwork.image" style="width: 100%; height: 100%;">
+            </div>
+            <div class="row text-center mt-2">
+                <span style="color: #a02905;">
+                    {{ artwork.name }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+  </div>
 </template>
   
 <script lang="ts">
@@ -83,14 +123,16 @@ export default defineComponent({
             uris: JSON.parse(this.$route.params.uris),
             artwork: {} as Artwork,
             keys: [] as string[],
+            dbpediaSameSubject: [] as Artwork[],
+            exhibitedWith: [] as Artwork[],
         };
     },
     async created() {
-        await this.getArtworkInfo();
+        this.getArtworkInfo();
     },
     methods: {
         async getArtworkInfo(){
-            await axios.get('http://localhost:8000/artwork', {
+            axios.get('http://localhost:8000/artwork', {
                 params: {
                     q: JSON.stringify(this.uris),
                 }
@@ -98,14 +140,36 @@ export default defineComponent({
                 this.handleArtworkData(response.data);
             }).catch(error => {
                 console.log(error);
-            });
+            });            
+
+            if (this.uris['dbpedia'] != null) {
+                axios.get('http://localhost:8000/artwork_with_same_subject', {
+                    params: {
+                        q: this.uris['dbpedia'],
+                    }
+                }).then(response => {
+                    this.dbpediaSameSubject.push(...response.data);
+                }).catch(error => {
+                    console.log(error);
+                });
+            }
+
+            if (this.uris['getty'] != null) {
+                axios.get('http://localhost:8000/artwork/exhibited_with', {
+                    params: {
+                        q: this.uris['getty'],
+                    }
+                }).then(response => {
+                    this.exhibitedWith.push(...response.data);
+                }).catch(error => {
+                    console.log(error);
+                });
+            }
         },
         handleArtworkData(artwork: Artwork) {
             this.artwork = artwork;
 
             this.keys = Object.keys(this.artwork.description);
-
-            console.log(this.artwork)
         }
 
     },

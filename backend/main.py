@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 
 import json
+from models.artwork import Artwork
 import sparql_queries
 
 app = FastAPI()
@@ -52,5 +53,28 @@ async def search(q: Optional[str] = ''):
 @app.get('/similar_artists_movement')
 async def search(uris: Optional[str] = '', movements: Optional[str] = ''):
     result = sparql_queries.get_similar_artists_by_movements(json.loads(uris), json.loads(movements))
+
+    return result
+
+@app.get('/artwork_with_same_subject')
+async def search(q: Optional[str] = ''):
+    dbpedia_uri = q
+
+    artwork = Artwork('')
+
+    artwork.add_uri('dbpedia', dbpedia_uri)
+
+    result = sparql_queries.get_artworks_with_same_subject(artwork)
+
+    return result
+
+@app.get('/exhibited_with')
+async def search(q: Optional[str] = ''):
+    getty_uri = q
+
+    artwork = Artwork('')
+    artwork.add_uri('getty', getty_uri)
+
+    result = sparql_queries.get_exhibited_with_getty(artwork)
 
     return result
