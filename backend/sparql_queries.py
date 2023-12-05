@@ -157,7 +157,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         }
     """ % (prefixes, search_term)
     
-    search_and_save(query, 'getty', results, Artist)
+    #search_and_save(query, 'getty', results, Artist)
     
     #Smithsonian Museum
     
@@ -246,7 +246,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
         }
     """ %  (prefixes, search_term)
 
-    search_and_save(query, 'getty', results, Artwork)
+    #search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
     query = """
@@ -888,12 +888,10 @@ def get_artworks_with_same_subject(artwork : Artwork) -> list[Artwork]:
                 }
                 FILTER (lang(?name) = "en")
             }
+            LIMIT 50
         """ % (prefixes, artwork.uris['dbpedia'])
 
         search_and_save(query, 'dbpedia', artworks, Artwork)
-
-    for artwork in artworks:
-        print(artwork.name)
 
     return artworks
 
@@ -901,7 +899,6 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
     artworks = []
 
     if 'getty' in artwork.uris:
-        print(artwork.uris['getty'])
         query = """
             %s
 
@@ -921,22 +918,7 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
 
         search_and_save(query, 'getty', artworks, Artwork)
 
-    for artwork in artworks:
-        print(artwork.name)
-        print(artwork.uris)
-        print()
-
-    results = []
-
-    for artwork in artworks:
-        results.append(get_dbpedia_info_for_getty(artwork))
-
-    for result in results:
-        print(result.name)
-        print(result.uris)
-        print()
-
-    return results
+    return artworks
 
 def get_dbpedia_info_for_getty(artwork : Artwork) -> Artwork:
     results = [artwork]
@@ -984,14 +966,15 @@ def get_dbpedia_info_for_getty(artwork : Artwork) -> Artwork:
     return results[0]
 
 if __name__ == '__main__':
-    artworks = artwork_search('girl')
+    artworks = artwork_search('fight like a girl')
 
     #print([(artwork.name, artwork.uris) for artwork in artworks])
 
     # get_artworks_with_same_subject(artworks[0])
     for artwork in artworks:
         if 'getty' in artwork.uris:
-            get_exhibited_with_getty(artworks[0])
+            get_exhibited_with_getty(artwork)
+            break
 
     # artists = artist_search('vincent van gogh')
 
