@@ -67,3 +67,14 @@ async def search(q: Optional[str] = ''):
     result = sparql_queries.get_artworks_with_same_subject(artwork)
 
     return result
+
+@app.get('/exhibited_with')
+async def search(q: Optional[str] = ''):
+    getty_uri = q
+
+    artwork = Artwork('')
+    artwork.add_uri('getty', getty_uri)
+
+    result = sparql_queries.get_exhibited_with_getty(artwork)
+
+    return result

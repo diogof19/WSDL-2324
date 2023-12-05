@@ -899,7 +899,7 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
         query = """
             %s
 
-            SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
+            SELECT DISTINCT ?uri ?name ?viz ?exact_match WHERE {
                 <%s> la:member_of ?exhibition.
                 ?uri la:member_of ?exhibition; rdf:type crm:E22_Human-Made_Object;
                     rdfs:label ?name.
@@ -907,8 +907,8 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
                     ?uri skos:exactMatch ?exact_match.
                     FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
                 }
-                OPTIONAL {
-                    ?uri getty:thumbnailUrl ?image.
+                OPTIONAL {                
+                    ?uri cidoc:P65_shows_visual_item ?viz.
                 }
             }
         """ % (prefixes, artwork.uris['getty'])

@@ -154,15 +154,17 @@ export default defineComponent({
                 });
             }
 
-            // axios.get('http://localhost:8000/artwork/exhibitedWith', {
-            //     params: {
-            //         q: JSON.stringify(this.uris),
-            //     }
-            // }).then(response => {
-            //     this.exhibitedWith = response.data;
-            // }).catch(error => {
-            //     console.log(error);
-            // });
+            if (this.uris['getty'] != null) {
+                axios.get('http://localhost:8000/artwork/exhibited_with', {
+                    params: {
+                        q: this.uris['getty'],
+                    }
+                }).then(response => {
+                    this.exhibitedWith.push(...response.data);
+                }).catch(error => {
+                    console.log(error);
+                });
+            }
         },
         handleArtworkData(artwork: Artwork) {
             this.artwork = artwork;
