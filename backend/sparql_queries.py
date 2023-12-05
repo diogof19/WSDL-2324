@@ -710,8 +710,81 @@ def retrieve_artwork_info(uris: dict):
         if len(museumsList) != 1 and museumsList[0] != '' :
             artwork.museumName = museumsList
             
+    if 'getty' in uris.keys():
+        query = """
+            %s
             
-    
+            SELECT ?name ?image ?year ?description ?authorName ?authorUri ?wikipediaLink ?museumName WHERE {
+                <%s> crm:P1_is_identified_by ?identify.
+                ?identify a crm:E33_E41_Linguistic_Appellation;
+                    crm:P190_has_symbolic_content ?name.
+                
+                OPTIONAL {
+                    <%s> crm:P43_has_dimension ?dimension.
+                    ?dimension crm:P2_has_type gettyth:object-date;
+                        crm:P90_has_value ?year.
+                }
+                
+                OPTIONAL {
+                    <%s> crm:P138i_has_representation ?image.
+                }
+                
+                OPTIONAL {
+                    <%s> crm:P3_has_note ?description.
+                }
+                
+                OPTIONAL {
+                    <%s> crm:P129i_is_subject_of ?gettyLink.
+                    ?gettyLink crm:P2_has_type aat:300264578.
+                }
+                
+                OPTIONAL {
+                    <%s> crm:P14_carried_out_by ?author.
+                    ?author crm:P1_is_identified_by ?aIdentify.
+                    ?aIdentify a crm:E33_E41_Linguistic_Appellation;
+                        crm:P190_has_symbolic_content ?authorName.
+                }
+                
+                OPTIONAL {
+                    <%s> la:member_of ?exhibition.
+                    ?exhibition crm:P1_is_identified_by ?eIdentify.
+                    ?eIdentify a crm:E33_E41_Linguistic_Appellation;
+                        crm:P190_has_symbolic_content ?museumName.
+                }
+            }
+        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'])
+        
+        '''
+        SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
+            {
+                SELECT ?uri (SAMPLE(?name) AS ?name) WHERE {
+                    ?uri rdf:type crm:E22_Human-Made_Object;
+                    rdfs:label ?name.
+
+                    FILTER regex(?name, ".*babel.*", "i")
+                }
+            }
+
+            OPTIONAL {
+                ?uri skos:exactMatch ?exact_match.
+                FILTER regex(str(?exact_match), "^http:\\/\\/vocab\\.getty\\.edu\\/.*", "i")
+            }
+            OPTIONAL {
+                ?uri getty:thumbnailUrl ?image.
+            }
+        }
+        
+        '''
+        
+        print(query)
+        
+        sparql = SPARQLWrapper(endpoints['getty'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        artwork_result = ret["results"]["bindings"][0]
+        
     return artwork
     
 def get_artworks_by_artist(uris: dict):
