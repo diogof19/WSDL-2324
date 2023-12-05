@@ -1,4 +1,6 @@
+import json
 from SPARQLWrapper import SPARQLWrapper, JSON, XML, CSV
+import requests
 from models.artist import Artist
 from models.artwork import Artwork
 from globals import BACKUP_DATABASE_HOST
@@ -79,6 +81,23 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
             if len(ret_2['results']['bindings']) > 0:
                 match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
 
+        if endpoint_name == 'getty' and 'viz' in r:
+            print(r['viz']['value'])
+            try:
+                image_response = requests.get(r['viz']['value']).json()
+
+                print(json.dumps(image_response, indent=4))
+
+                for access_point in image_response['digitally_shown_by'][0]['access_point']:
+                    if access_point['classified_as'][0]['id'] == 'https://data.getty.edu/local/thesaurus/thumbnail':
+                        r['image'] = {
+                            'value': access_point['id']
+                        }
+                        break
+            except Exception as e:
+                print(e)
+                
+
         found = False
 
         for result in results:
@@ -90,6 +109,8 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
 
                 if 'image' in r and (not result.has_image() or 'Redirect/file' in result.image):
                     result.add_image(r['image']['value'])
+
+                break
             elif endpoint_name == 'smithsonian' and 'dbpedia' in result.uris and 'dbpedia' in r and r['dbpedia']['value'] == result.uris['dbpedia']:
                 found = True
 
@@ -98,7 +119,7 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
                 if 'image' in r and (not result.has_image() or 'Redirect/file' in result.image):
                     result.add_image(r['image']['value'])
 
-            break                
+                break                
             
         if found:
             continue
@@ -113,7 +134,6 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
             artist.add_uri('wikidata', r['wikidata']['value'])
         
         results.append(artist)
-        
 
 def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]:
     results = []
@@ -129,7 +149,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         f'?uri rdf:type dbo:Person, dbo:Artist; rdfs:label ?name.\n'
         f'OPTIONAL {{\n'
         f'?uri owl:sameAs ?wikidata.\n'
-        f'FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")\n'
+        f'FILTER regex(str(?wikidata), "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")\n'
         f'}}\n'
         f'OPTIONAL {{\n'
         f'?uri dbo:thumbnail ?image.\n'
@@ -140,7 +160,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         f'}}'
     )
     
-    search_and_save(query, 'dbpedia', results, Artist)
+    #search_and_save(query, 'dbpedia', results, Artist)
     
     #Getty Museum
     query = """
@@ -157,27 +177,9 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'getty', results, Artist)
+    search_and_save(query, 'getty', results, Artist)
     
     #Smithsonian Museum
-    
-    query = """
-        %s
-        
-        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) ?dbpedia WHERE {
-            ?uri rdf:type cidoc:E39_Actor;
-              cidoc:P1_is_identified_by ?name.
-            OPTIONAL {
-                ?uri owl:sameAs ?dbpedia.
-                FILTER regex(?dbpedia, "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
-            }
-            ?name rdfs:label ?name.
-            FILTER regex(?name, ".*%s.*", "i")
-            FILTER (lang(?name) = "en")
-        }
-    """ % (prefixes, search_term)
-    
-    # TODO: I can't find the dbpedia relationship, so I we're not checking if it exist in dbpedia results to join
     query = """
         %s
         
@@ -185,7 +187,10 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
             ?uri rdf:type cidoc:E21_Person;
                     cidoc:P1_is_identified_by ?dName.
             FILTER regex(?uri, "^http.*")
-            
+            OPTIONAL {
+                ?uri owl:sameAs ?dbpedia.
+                FILTER regex(str(?dbpedia), "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
+            }
             ?dName rdfs:label ?name.
             FILTER regex(?name, ".*%s.*", "i")
         }
@@ -209,12 +214,11 @@ def artwork_search(search_term : str) -> list[Artwork]:
                 rdfs:label ?name.
             OPTIONAL {
                 ?uri owl:sameAs ?wikidata.
-                FILTER regex(?wikidata, "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
+                FILTER regex(str(?wikidata), "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
             }
             OPTIONAL {
                 ?uri dbo:thumbnail ?image.
-            }
-            
+            }            
             FILTER (regex(?name, ".*%s.*", "i"))
             FILTER (lang(?name) = "en")
         }
@@ -226,27 +230,20 @@ def artwork_search(search_term : str) -> list[Artwork]:
     query = """
         %s
 
-        SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
-            ?uri rdf:type crm:E22_Human-Made_Object.
-            
-            {
-    			SELECT (SAMPLE(?name) as ?name) {
-      				?uri rdfs:label ?name.
-      				FILTER regex(?name, ".*%s.*", "i")
-    			}
-  			}
-            
+        SELECT DISTINCT ?uri ?name ?viz ?exact_match WHERE {
+            ?uri rdf:type crm:E22_Human-Made_Object; rdfs:label ?name.
+            FILTER regex(?name, ".*%s.*", "i")            
             OPTIONAL {
                 ?uri skos:exactMatch ?exact_match.
                 FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
             }
             OPTIONAL {                
-                ?uri getty:thumbnailUrl ?image.
+                ?uri cidoc:P65_shows_visual_item ?viz.
             }
         }
     """ %  (prefixes, search_term)
 
-    #search_and_save(query, 'getty', results, Artwork)
+    search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
     query = """
@@ -257,7 +254,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
             ?title rdfs:label ?name.
             OPTIONAL {
                 ?uri owl:sameAs ?dbpedia.
-                FILTER regex(?dbpedia, "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
+                FILTER regex(str(?dbpedia), "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
             }
             OPTIONAL {
                 ?uri cidoc:P138i_has_representation ?image.
