@@ -86,8 +86,6 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
             try:
                 image_response = requests.get(r['viz']['value']).json()
 
-                print(json.dumps(image_response, indent=4))
-
                 for access_point in image_response['digitally_shown_by'][0]['access_point']:
                     if access_point['classified_as'][0]['id'] == 'https://data.getty.edu/local/thesaurus/thumbnail':
                         r['image'] = {
@@ -970,7 +968,13 @@ if __name__ == '__main__':
     # get_artworks_with_same_subject(artworks[0])
     for artwork in artworks:
         if 'getty' in artwork.uris:
-            get_exhibited_with_getty(artwork)
+            coex = get_exhibited_with_getty(artwork)
+
+            for co in coex:
+                print(co.name)
+                print(co.image)
+                print(co.uris)
+                print()
             break
 
     # artists = artist_search('vincent van gogh')
