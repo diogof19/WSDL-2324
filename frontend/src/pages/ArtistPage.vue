@@ -194,6 +194,8 @@
                 this.keys.splice(this.keys.indexOf('smithsonian'), 1);
                 this.keys.unshift('smithsonian');
             }
+
+            console.log(this.artist);
         },
         async getArtworks() {
             await axios.get('http://localhost:8000/artworks_by_artist', {
@@ -202,6 +204,7 @@
                 }
             }).then(response => {
                 this.artist.artworks = response.data;
+                console.log(this.artist.artworks);
             }).catch(error => {
                 console.log(error);
             });
@@ -217,7 +220,7 @@
                 }
             }).then(response => {
                 this.similarArtists = response.data;
-                console.log(this.similarArtists);
+                //console.log(this.similarArtists);
             }).catch(error => {
                 console.log(error);
             });

@@ -48,7 +48,7 @@ prefixes = """
     PREFIX gettyth: <https://data.getty.edu/local/thesaurus/>
     PREFIX dbp: <http://dbpedia.org/property/>
     PREFIX dcterms: <http://purl.org/dc/terms/>
-    PREFIX amart: <http://collection.americanart.si.edu/id/ontologies/>
+    PREFIX amart: <http://edan.si.edu/saam/id/ontologies/>
 """
 
 def search_and_save(query : str, endpoint_name : str, results : list[Artist | Artwork], result_type : type) -> None:
@@ -158,7 +158,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         f'}}'
     )
     
-    #search_and_save(query, 'dbpedia', results, Artist)
+    search_and_save(query, 'dbpedia', results, Artist)
     
     #Getty Museum
     query = """
@@ -181,13 +181,17 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
     query = """
         %s
         
-        SELECT DISTINCT ?uri (SAMPLE(?name) as ?name)  WHERE {
+        SELECT DISTINCT ?uri (SAMPLE(?name) as ?name) ?dbpedia WHERE {
             ?uri rdf:type cidoc:E21_Person;
                     cidoc:P1_is_identified_by ?dName.
             FILTER regex(?uri, "^http.*")
             OPTIONAL {
-                ?uri owl:sameAs ?dbpedia.
-                FILTER regex(str(?dbpedia), "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
+                ?uri cidoc:P48_has_preferred_identifier ?idR.
+                ?idR rdfs:label ?id.
+                BIND(CONCAT("http://collection.americanart.si.edu/id/person-institution/", str( ?id ))  AS ?collection) .
+                BIND(URI(?collection) as ?collectionUri)
+                ?collectionUri owl:sameAs ?dbpedia.
+                FILTER regex(str(?dbpedia), "^http://dbpedia.org/.*", "i")
             }
             ?dName rdfs:label ?name.
             FILTER regex(?name, ".*%s.*", "i")
@@ -598,7 +602,6 @@ def retrieve_artist_info(uris: dict):
         }
 
         """ % (prefixes, uris['smithsonian'], uris['smithsonian'], uris['smithsonian'], uris['smithsonian'], uris['smithsonian'])
-        print(query)
         
         sparql = SPARQLWrapper(endpoints['smithsonian'])
         sparql.setReturnFormat(JSON)
