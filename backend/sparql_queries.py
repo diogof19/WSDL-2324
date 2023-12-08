@@ -198,7 +198,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         }
     """ % (prefixes, search_term)
     
-    search_and_save(query, 'smithsonian', results, Artist)
+    #search_and_save(query, 'smithsonian', results, Artist)
 
     return results
 
@@ -232,7 +232,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
     query = """
         %s
 
-        SELECT DISTINCT ?uri ?name ?viz ?exact_match WHERE {
+        SELECT DISTINCT (SAMPLE(?uri) as ?uri) (SAMPLE(?name) as ?name) (SAMPLE(?viz) AS ?image) (SAMPLE(?exact_match) as ?exact_match) WHERE {
             ?uri rdf:type crm:E22_Human-Made_Object; rdfs:label ?name.
             FILTER regex(?name, ".*%s.*", "i")            
             OPTIONAL {
@@ -240,7 +240,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
                 FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
             }
             OPTIONAL {                
-                ?uri cidoc:P65_shows_visual_item ?viz.
+                ?uri crm:P138i_has_representation ?viz.
             }
         }
     """ %  (prefixes, search_term)
@@ -266,7 +266,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
         }
     """ % (prefixes, search_term)
     
-    search_and_save(query, 'smithsonian', results, Artwork)
+    #search_and_save(query, 'smithsonian', results, Artwork)
 
     #Wikidata
     query = """
@@ -712,70 +712,42 @@ def retrieve_artwork_info(uris: dict):
         query = """
             %s
             
-            SELECT ?name ?image ?year ?description ?authorName ?authorUri ?wikipediaLink ?museumName WHERE {
-                <%s> crm:P1_is_identified_by ?identify.
-                ?identify a crm:E33_E41_Linguistic_Appellation;
-                    crm:P190_has_symbolic_content ?name.
-                
-                OPTIONAL {
-                    <%s> crm:P43_has_dimension ?dimension.
-                    ?dimension crm:P2_has_type gettyth:object-date;
-                        crm:P90_has_value ?year.
-                }
-                
-                OPTIONAL {
-                    <%s> crm:P138i_has_representation ?image.
-                }
-                
-                OPTIONAL {
-                    <%s> crm:P3_has_note ?description.
-                }
-                
-                OPTIONAL {
-                    <%s> crm:P129i_is_subject_of ?gettyLink.
-                    ?gettyLink crm:P2_has_type aat:300264578.
-                }
-                
-                OPTIONAL {
-                    <%s> crm:P14_carried_out_by ?author.
-                    ?author crm:P1_is_identified_by ?aIdentify.
-                    ?aIdentify a crm:E33_E41_Linguistic_Appellation;
-                        crm:P190_has_symbolic_content ?authorName.
-                }
-                
-                OPTIONAL {
-                    <%s> la:member_of ?exhibition.
-                    ?exhibition crm:P1_is_identified_by ?eIdentify.
-                    ?eIdentify a crm:E33_E41_Linguistic_Appellation;
-                        crm:P190_has_symbolic_content ?museumName.
-                }
-            }
-        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'])
-        
-        '''
-        SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
-            {
-                SELECT ?uri (SAMPLE(?name) AS ?name) WHERE {
-                    ?uri rdf:type crm:E22_Human-Made_Object;
-                    rdfs:label ?name.
+            SELECT ?name ?image ?authorName ?authorUri ?year ?provenance ?description WHERE {
+                <%s> rdfs:label ?name;
+                    crm:P138i_has_representation ?image.
 
-                    FILTER regex(?name, ".*babel.*", "i")
+                OPTIONAL {
+                    <%s> crm:P108i_was_produced_by ?production.
+                    ?production crm:P14_carried_out_by ?authorUri;
+                                crm:P4_has_time-span ?timespan.
+                    ?authorUri rdfs:label ?authorName.
+                    ?timespan crm:P1_is_identified_by ?timespanId.
+                    ?timespanId crm:P190_has_symbolic_content ?year.
                 }
-            }
+                OPTIONAL {
+                    <%s> crm:P67i_is_referred_to_by ?referredBy.
+                    ?referredBy rdfs:label "Object Description";
+                                crm:P190_has_symbolic_content ?description;
+                                purl:format "text/markdown".
+                }         
 
-            OPTIONAL {
-                ?uri skos:exactMatch ?exact_match.
-                FILTER regex(str(?exact_match), "^http:\\/\\/vocab\\.getty\\.edu\\/.*", "i")
-            }
-            OPTIONAL {
-                ?uri getty:thumbnailUrl ?image.
-            }
+                OPTIONAL {   
+                    SELECT (GROUP_CONCAT(?owners;separator="|") AS ?provenance) WHERE{
+                        <%s> crm:P24i_changed_ownership_through ?provPage.
+                        ?provPage crm:P22_transferred_title_to ?to;
+                        crm:P9i_forms_part_of ?partOf.
+                        ?to rdfs:label ?toName.
+                        ?partOf crm:P4_has_time-span ?partOfTimespan.
+                        ?partOfTimespan crm:P1_is_identified_by ?partOfTimespanId.
+                        ?partOfTimespanId crm:P190_has_symbolic_content ?provTimespan.
+                        BIND(CONCAT(?toName, ";", ?provTimespan) AS ?owners)
+
+                    }
+                }
         }
+        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'])
         
-        '''
-        
-        print(query)
-        
+    
         sparql = SPARQLWrapper(endpoints['getty'])
         sparql.setReturnFormat(JSON)
         sparql.setQuery(query)
@@ -783,6 +755,30 @@ def retrieve_artwork_info(uris: dict):
         ret = sparql.query().convert()
         artwork_result = ret["results"]["bindings"][0]
         
+        if 'artwork' not in locals():
+            artwork = Artwork(artwork_result['name']['value'])
+
+            if 'year' in artwork_result:
+                artwork.year = artwork_result['year']['value']
+            
+            if 'authorName' in artwork_result:
+                artwork.authorName = artwork_result['authorName']['value']
+
+            if 'image' in artwork_result:
+                artwork.image = artwork_result['image']['value']
+
+        artwork.description["getty"] = artwork_result['description']['value']
+        artwork.add_uri('getty', uris['getty'])
+        
+        if 'authorUri' in artwork_result:
+            artwork.authorUri["getty"] = artwork_result['authorUri']['value']
+        
+        if 'provenance' in artwork_result:
+            provList = artwork_result['provenance']['value'].split('|')
+            for prov in provList:
+                provTemp = prov.split(";")
+                artwork.provenance[provTemp[1]] = provTemp[0]
+
     return artwork
     
 def get_artworks_by_artist(uris: dict):

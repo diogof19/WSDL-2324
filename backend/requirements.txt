@@ -1,3 +1,4 @@
 SPARQLWrapper
 fastapi
 uvicorn
+requests

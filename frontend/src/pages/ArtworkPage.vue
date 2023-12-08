@@ -54,7 +54,7 @@
                 </nobr>
             </div>
         </div>
-        <div v-if="this.artwork.museumName!.length > 0" class="col-6">
+        <div v-if="this.artwork.museumName.length > 0" class="col-6">
             <div class="row ms-1">
                 <h5 style="color: #a02905;">
                     Museum
