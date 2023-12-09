@@ -1,5 +1,5 @@
 <template >
-    <footer class="footer-fluid mt-0 mb-3 bg-light" style="width:100%;position:fixed; bottom:0px;">
+    <footer class="footer-fluid pb-3 bg-light" style="width:100%;position:fixed; bottom:0px;">
         <hr class="m-0">
         <div class="container mt-3">
             <div class="row">

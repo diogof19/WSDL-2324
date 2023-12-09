@@ -54,16 +54,18 @@
                 </nobr>
             </div>
         </div>
-        <div v-if="this.artwork.museumName.length > 0" class="col-6">
-            <div class="row ms-1">
-                <h5 style="color: #a02905;">
-                    Museum
-                </h5>
-            </div>
-            <div v-for="museum in this.artwork.museumName" class="row ms-1">
-                <nobr>
-                    {{ museum }}
-                </nobr>
+        <div v-if="this.artwork.museumName != null">
+            <div v-if="this.artwork.museumName.length > 0" class="col-6">
+                <div class="row ms-1">
+                    <h5 style="color: #a02905;">
+                        Museum
+                    </h5>
+                </div>
+                <div v-for="museum in this.artwork.museumName" class="row ms-1">
+                    <nobr>
+                        {{ museum }}
+                    </nobr>
+                </div>
             </div>
         </div>
     </div>
@@ -87,27 +89,38 @@
         </div>
     </div>
 
-  </div>
-  <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-5">
-    <div class="row ms-1">
-        <h5 style="color: #a02905;">
-            Artworks
-        </h5>
     </div>
-    <div class="row ps-4 flex-nowrap overflow-auto">
-        <div v-for="artwork in this.exhibitedWith" class="card col-2 me-4 mt-3" @click="goToArtworkPage(artwork)" style="cursor:pointer;">
-            <div class="row">
-                <img :src="artwork.image" style="width: 100%; height: 100%;">
-            </div>
-            <div class="row text-center mt-2">
-                <span style="color: #a02905;">
-                    {{ artwork.name }}
-                </span>
+    <div v-if="this.provenance.length > 0" class="card container mt-5 mb-5">
+        <div class="row ms-1">
+            <h5 style="color: #a02905;">
+                Provenance
+            </h5>
+        </div>
+        <div v-for="provenance in this.provenance" class="row ms-1">
+            <div>
+                <b>{{ provenance[1] }} : </b> {{ provenance[0] }}
             </div>
         </div>
     </div>
-
-  </div>
+    <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-10">
+        <div class="row ms-1">
+            <h5 style="color: #a02905;">
+                Artworks
+            </h5>
+        </div>
+        <div class="row ps-4 flex-nowrap overflow-auto">
+            <div v-for="artwork in this.exhibitedWith" class="card col-2 me-4 mt-3" @click="goToArtworkPage(artwork)" style="cursor:pointer;">
+                <div class="row">
+                    <img :src="artwork.image" style="width: 100%; height: 100%;">
+                </div>
+                <div class="row text-center mt-2">
+                    <span style="color: #a02905;">
+                        {{ artwork.name }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
 </template>
   
 <script lang="ts">
@@ -125,6 +138,7 @@ export default defineComponent({
             keys: [] as string[],
             dbpediaSameSubject: [] as Artwork[],
             exhibitedWith: [] as Artwork[],
+            provenance: [] as string[][]
         };
     },
     async created() {
@@ -164,7 +178,20 @@ export default defineComponent({
                 }).catch(error => {
                     console.log(error);
                 });
+
+                axios.get('http://localhost:8000/artwork/provenance', {
+                    params: {
+                        q: this.uris['getty'],
+                    }
+                }).then(response => {
+                    console.log(response.data);
+
+                    this.provenance.push(...response.data);
+                }).catch(error => {
+                    console.log(error);
+                });
             }
+
         },
         handleArtworkData(artwork: Artwork) {
             this.artwork = artwork;

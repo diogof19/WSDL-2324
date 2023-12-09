@@ -9,7 +9,6 @@ class Artwork(Result):
         self.authorName = None
         self.wikipedia_link = None
         self.museumName = []
-        self.provenance = {}
         pass
     
     

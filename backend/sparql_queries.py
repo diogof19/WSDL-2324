@@ -82,7 +82,7 @@ def search_and_save(query : str, endpoint_name : str, results : list[Artist | Ar
                 match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
 
         if endpoint_name == 'getty' and 'viz' in r:
-            print(r['viz']['value'])
+            f(r['viz']['value'])
             try:
                 image_response = requests.get(r['viz']['value']).json()
 
@@ -232,19 +232,18 @@ def artwork_search(search_term : str) -> list[Artwork]:
     query = """
         %s
 
-        SELECT DISTINCT (SAMPLE(?uri) as ?uri) (SAMPLE(?name) as ?name) (SAMPLE(?viz) AS ?image) (SAMPLE(?exact_match) as ?exact_match) WHERE {
+        SELECT DISTINCT ?uri ?name ?image ?exact_match     WHERE {
             ?uri rdf:type crm:E22_Human-Made_Object; rdfs:label ?name.
             FILTER regex(?name, ".*%s.*", "i")            
             OPTIONAL {
                 ?uri skos:exactMatch ?exact_match.
                 FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
             }
-            OPTIONAL {                
-                ?uri crm:P138i_has_representation ?viz.
+            OPTIONAL { 
+                ?uri crm:P138i_has_representation ?image.
             }
         }
     """ %  (prefixes, search_term)
-
     search_and_save(query, 'getty', results, Artwork)
 
     #Smithsonian Museum
@@ -631,7 +630,7 @@ def retrieve_artist_info(uris: dict):
     return artist
 
 def retrieve_artwork_info(uris: dict):
-    print(type(uris))
+
     if 'dbpedia' in uris.keys():
         query = """
             %s
@@ -674,7 +673,7 @@ def retrieve_artwork_info(uris: dict):
                     }
                 }
             }
-        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
+        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
         
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
@@ -731,21 +730,9 @@ def retrieve_artwork_info(uris: dict):
                                 purl:format "text/markdown".
                 }         
 
-                OPTIONAL {   
-                    SELECT (GROUP_CONCAT(?owners;separator="|") AS ?provenance) WHERE{
-                        <%s> crm:P24i_changed_ownership_through ?provPage.
-                        ?provPage crm:P22_transferred_title_to ?to;
-                        crm:P9i_forms_part_of ?partOf.
-                        ?to rdfs:label ?toName.
-                        ?partOf crm:P4_has_time-span ?partOfTimespan.
-                        ?partOfTimespan crm:P1_is_identified_by ?partOfTimespanId.
-                        ?partOfTimespanId crm:P190_has_symbolic_content ?provTimespan.
-                        BIND(CONCAT(?toName, ";", ?provTimespan) AS ?owners)
-
-                    }
-                }
+                
         }
-        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'])
+        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'])
         
     
         sparql = SPARQLWrapper(endpoints['getty'])
@@ -772,12 +759,6 @@ def retrieve_artwork_info(uris: dict):
         
         if 'authorUri' in artwork_result:
             artwork.authorUri["getty"] = artwork_result['authorUri']['value']
-        
-        if 'provenance' in artwork_result:
-            provList = artwork_result['provenance']['value'].split('|')
-            for prov in provList:
-                provTemp = prov.split(";")
-                artwork.provenance[provTemp[1]] = provTemp[0]
 
     return artwork
     
@@ -969,7 +950,7 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
         query = """
             %s
 
-            SELECT DISTINCT ?uri ?name ?viz ?exact_match WHERE {
+            SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
                 <%s> la:member_of ?exhibition.
                 ?uri la:member_of ?exhibition; rdf:type crm:E22_Human-Made_Object;
                     rdfs:label ?name.
@@ -977,11 +958,12 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
                     ?uri skos:exactMatch ?exact_match.
                     FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
                 }
-                OPTIONAL {                
-                    ?uri cidoc:P65_shows_visual_item ?viz.
+                OPTIONAL {       
+                    ?uri cidoc:P138i_has_representation ?image.
                 }
             }
         """ % (prefixes, artwork.uris['getty'])
+        print(query)
 
         search_and_save(query, 'getty', artworks, Artwork)
 
@@ -1031,6 +1013,60 @@ def get_dbpedia_info_for_getty(artwork : Artwork) -> Artwork:
             search_and_save(query, 'dbpedia', results, Artwork)
 
     return results[0]
+
+def get_provenance(artwork: Artwork) -> list[str]:
+    res = []
+    if 'getty' in artwork.uris:
+        query = """
+            %s
+
+            SELECT (GROUP_CONCAT(?owners;separator="|") AS ?provenance) WHERE{
+                <%s> crm:P24i_changed_ownership_through ?provPage.
+                ?provPage crm:P22_transferred_title_to ?to;
+                crm:P9i_forms_part_of ?partOf.
+                ?to rdfs:label ?toName.
+                ?partOf crm:P4_has_time-span ?partOfTimespan.
+                ?partOfTimespan crm:P1_is_identified_by ?partOfTimespanId.
+                ?partOfTimespanId crm:P190_has_symbolic_content ?provTimespan.
+                BIND(CONCAT(?toName, ";", ?provTimespan) AS ?owners)
+
+            }
+        
+            """ % (prefixes, artwork.uris['getty'])
+        
+        sparql = SPARQLWrapper(endpoints['getty'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+
+        ret = sparql.query().convert()
+
+        provenance = ret['results']['bindings'][0]['provenance']['value'].split('|')
+
+        for i in range(len(provenance)):
+            res.append(provenance[i].split(';'))
+            res[i].append(str(extract_year(res[i][-1])))
+        # Res Sort provenance by date 
+        # Date is a string that contains a year, but could also contain a range of years and string like "about"
+        # Date is stored in res in index 2
+
+        res.sort(key=lambda x: x[-1])
+        print(res)
+
+    return res
+
+def extract_year(date_str):
+    res = date_str.split(' ')
+    res = [res[i].strip() for i in range(len(res))]
+
+    for date in res:
+        try:
+            return int(date)
+        except:
+            continue
+    
+    return None
+    
+
 
 if __name__ == '__main__':
     artworks = artwork_search('fight like a girl')

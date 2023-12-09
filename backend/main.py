@@ -40,8 +40,9 @@ async def search(q: Optional[str] = ''):
 
 @app.get('/artwork')
 async def search(q: Optional[str] = ''):
+    print('/artwork')
     result = sparql_queries.retrieve_artwork_info(json.loads(q))
-
+    print('/artwork')
     return result
 
 @app.get('/artworks_by_artist')
@@ -68,7 +69,7 @@ async def search(q: Optional[str] = ''):
 
     return result
 
-@app.get('/exhibited_with')
+@app.get('/artwork/exhibited_with')
 async def search(q: Optional[str] = ''):
     getty_uri = q
 
@@ -76,5 +77,16 @@ async def search(q: Optional[str] = ''):
     artwork.add_uri('getty', getty_uri)
 
     result = sparql_queries.get_exhibited_with_getty(artwork)
+    
+    return result
+
+@app.get('/artwork/provenance')
+async def search(q: Optional[str] = ''):
+    getty_uri = q
+
+    artwork = Artwork('')
+    artwork.add_uri('getty', getty_uri)
+    
+    result = sparql_queries.get_provenance(artwork)
 
     return result
