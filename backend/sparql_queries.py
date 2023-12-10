@@ -52,7 +52,7 @@ prefixes = """
     PREFIX schema: <http://schema.org/>
 """
 
-def search_and_save(query : str, endpoint_name : str, results : list[Artist | Artwork], result_type : type) -> None:
+def search_and_save(query : str, endpoint_name : str, results : list, result_type : type) -> None:
     sparql = SPARQLWrapper(endpoints[endpoint_name])
     sparql.setReturnFormat(JSON)
     sparql.setQuery(query)
