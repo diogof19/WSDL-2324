@@ -1,6 +1,6 @@
 <template>
   
-  <SearchBar @receivedResponse="handleResponse"/>
+  <SearchBar @receivedResponse="handleResponse" />
   <hr v-if="this.searchResults.length != 0" class="ms-5 me-5">
   <div class="col" id="results">
     <SearchResult v-for="(result, index) in searchResults" :key="index" :result="result"/>
@@ -24,6 +24,7 @@
       data() {
         return {
             searchResults: [] as (Artist | Artwork)[],
+            selectedSearchResults: [] as (Artist | Artwork )[]
         }
       },
       created() {
@@ -35,7 +36,7 @@
             this.searchResults = [] as (Artist | Artwork)[]
           }       
           this.searchResults = this.searchResults.concat(this.makeObjectArray(response));
-
+          this.selectedSearchResults = this.searchResults;
           console.log(this.searchResults);
         },
         makeObjectArray(response: any[]) : (Artist | Artwork)[] {

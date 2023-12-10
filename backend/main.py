@@ -40,9 +40,7 @@ async def search(q: Optional[str] = ''):
 
 @app.get('/artwork')
 async def search(q: Optional[str] = ''):
-    print('/artwork')
     result = sparql_queries.retrieve_artwork_info(json.loads(q))
-    print('/artwork')
     return result
 
 @app.get('/artworks_by_artist')

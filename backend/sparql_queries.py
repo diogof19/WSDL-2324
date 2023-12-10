@@ -49,6 +49,7 @@ prefixes = """
     PREFIX dbp: <http://dbpedia.org/property/>
     PREFIX dcterms: <http://purl.org/dc/terms/>
     PREFIX amart: <http://edan.si.edu/saam/id/ontologies/>
+    PREFIX schema: <http://schema.org/>
 """
 
 def search_and_save(query : str, endpoint_name : str, results : list[Artist | Artwork], result_type : type) -> None:
@@ -500,7 +501,6 @@ def retrieve_artist_info(uris: dict):
             }
         }
         """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'])
-        print(query)
         
         sparql = SPARQLWrapper(endpoints['getty'])
         sparql.setMethod('POST')
@@ -709,12 +709,14 @@ def retrieve_artwork_info(uris: dict):
                     ?timespan crm:P1_is_identified_by ?timespanId.
                     ?timespanId crm:P190_has_symbolic_content ?year.
                 }
+                
                 OPTIONAL {
                     <%s> crm:P67i_is_referred_to_by ?referredBy.
                     ?referredBy rdfs:label "Object Description";
                                 crm:P190_has_symbolic_content ?description;
                                 purl:format "text/markdown".
-                }     
+                }
+                     
                 OPTIONAL {
                     <%s> crm:P138i_has_representation ?image.
                 }    
@@ -722,7 +724,6 @@ def retrieve_artwork_info(uris: dict):
                 
         }
         """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'])
-        
     
         sparql = SPARQLWrapper(endpoints['getty'])
         sparql.setReturnFormat(JSON)
@@ -740,15 +741,158 @@ def retrieve_artwork_info(uris: dict):
             if 'authorName' in artwork_result:
                 artwork.authorName = artwork_result['authorName']['value']
 
-            if 'image' in artwork_result:
+        if 'image' in artwork_result:
+            if artwork.image == None:
                 artwork.image = artwork_result['image']['value']
 
-        artwork.description["getty"] = artwork_result['description']['value']
+        
+        if 'description' in artwork_result:
+            artwork.description["getty"] = artwork_result['description']['value']
+        
         artwork.add_uri('getty', uris['getty'])
         
         if 'authorUri' in artwork_result:
             artwork.authorUri["getty"] = artwork_result['authorUri']['value']
 
+    if 'smithsonian' in uris.keys():
+        query = """
+            %s
+
+            SELECT (SAMPLE(?name) AS ?name) ?year ?authorName ?authorUri ?image ?description ?museumName WHERE {
+                <%s> crm:P102_has_title ?title.
+                ?title rdfs:label ?name.
+
+                OPTIONAL {
+                    {  
+                        SELECT ?authorUri ?authorName WHERE {
+                            ?production cidoc:P108_has_produced <%s>.
+                            ?production cidoc:P14_carried_out_by ?authorUri.
+                            ?authorUri cidoc:P1_is_identified_by ?identify.
+                            ?identify rdfs:label ?authorName.  
+                       }
+                    }
+                }
+
+                OPTIONAL {
+                    {  
+                        SELECT ?year WHERE {
+                            ?production cidoc:P108_has_produced <%s>.
+                            ?production crm:P4_has_time-span ?date.
+                            ?date rdfs:label ?year.
+                       }
+                    }
+                    
+                }
+
+                OPTIONAL {
+                    <%s> crm:P138i_has_representation ?image.
+                }
+                
+                OPTIONAL {
+                    <%s> amart:PE_has_note_lucecenterlabel ?description.
+                }
+                
+                OPTIONAL {
+                    <%s> crm:P55_has_current_location ?location.
+                    ?location rdfs:label ?museumName.
+                }
+            }
+        """ % (prefixes, uris['smithsonian'], uris['smithsonian'], uris['smithsonian'], uris['smithsonian'], uris['smithsonian'], uris['smithsonian'])
+        
+        sparql = SPARQLWrapper(endpoints['smithsonian'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        artwork_result = ret["results"]["bindings"][0]
+        
+        if 'artwork' not in locals():
+            artwork = Artwork(artwork_result['name']['value'])
+            
+            if 'year' in artwork_result:
+                artwork.year = artwork_result['year']['value']
+            
+            if 'authorName' in artwork_result:
+                artwork.authorName = artwork_result['authorName']['value']
+            
+        if 'image' in artwork_result:
+            if artwork.image == None:
+                artwork.image = artwork_result['image']['value']
+        
+        if 'description' in artwork_result:
+            artwork.description["smithsonian"] = artwork_result['description']['value']
+        
+        artwork.add_uri('smithsonian', uris['smithsonian'])
+        
+        if 'authorUri' in artwork_result:
+            artwork.authorUri["smithsonian"] = artwork_result['authorUri']['value']
+            
+        if 'museumName' in artwork_result:
+            artwork.museumName.append(artwork_result['museumName']['value'].split(":")[0])
+    
+    if 'wikidata' in uris.keys():
+        query = """
+            %s
+            
+            SELECT ?name ?year ?museumName ?authorUri ?authorName ?description {
+                <%s> rdfs:label ?name.
+                FILTER langMatches(lang(?name),'en').
+                
+                OPTIONAL {
+                    <%s> wdt:P571 ?year.
+                }
+                
+                OPTIONAL {
+                    <%s> wdt:P276 ?location.
+                    ?location rdfs:label ?museumName.
+                    FILTER langMatches(lang(?museumName),'en').
+                }
+                
+                OPTIONAL {
+                    { 
+                        SELECT ?authorUri ?authorName WHERE {
+                            <%s> wdt:P170 ?authorUri.
+                            ?authorUri rdfs:label ?authorName.
+                            FILTER langMatches(lang(?authorName),'en').
+                        }
+                    } 
+                }
+                
+                OPTIONAL {
+                    <%s> schema:description ?description.
+                    FILTER langMatches(lang(?description),'en').
+                }
+                
+            } LIMIT 1
+        """ % (prefixes, uris['wikidata'], uris['wikidata'], uris['wikidata'], uris['wikidata'],uris['wikidata'])
+        
+        sparql = SPARQLWrapper(endpoints['wikidata'])
+        sparql.setReturnFormat(JSON)
+        sparql.setQuery(query)
+        
+        ret = sparql.query().convert()
+        artwork_result = ret["results"]["bindings"][0]
+        
+        if 'artwork' not in locals():
+            artwork = Artwork(artwork_result['name']['value'])
+            
+            if 'year' in artwork_result:
+                artwork.year = artwork_result['year']['value']
+            
+            if 'authorName' in artwork_result:
+                artwork.authorName = artwork_result['authorName']['value']
+                
+        if 'museumName' in artwork_result:
+            artwork.museumName.append(artwork_result['museumName']['value'])
+            
+        if 'description' in artwork_result:
+            artwork.description["wikidata"] = artwork_result['description']['value']
+            
+        artwork.add_uri('wikidata', uris['wikidata'])
+        
+        if 'authorUri' in artwork_result:
+            artwork.authorUri["wikidata"] = artwork_result['authorUri']['value']
+    
     return artwork
     
 def get_artworks_by_artist(uris: dict):
@@ -787,12 +931,17 @@ def get_artworks_by_artist(uris: dict):
         query = """
             %s
             
-            SELECT ?uri ?name WHERE {
+            SELECT ?uri ?name ?image WHERE {
                 ?production cidoc:P14_carried_out_by %s;
                             cidoc:P108_has_produced ?uri.
                 
                 ?uri cidoc:P102_has_title ?title.
                 ?title rdfs:label ?name.
+                
+                OPTIONAL {
+                    ?uri crm:P138i_has_representation ?image.
+                }
+                
             }
         """ % (prefixes, uris['smithsonian'])
         
@@ -805,6 +954,10 @@ def get_artworks_by_artist(uris: dict):
         for r in ret["results"]["bindings"]:
             artwork = Artwork(r['name']['value'])
             artwork.add_uri('smithsonian', r['uri']['value'])
+            
+            if 'image' in r:
+                artwork.add_image(r['image']['value'])
+            
             artworks.append(artwork)
     
     if 'dbpedia' in uris.keys():
@@ -964,8 +1117,14 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
         """ % (prefixes, artwork.uris['getty'])
 
         search_and_save(query, 'getty', artworks, Artwork)
+        
+    results = []
+    
+    for res in artworks:
+        if res.uris['getty'] != artwork.uris['getty']:
+            results.append(res)
 
-    return artworks
+    return results
 
 def get_dbpedia_info_for_getty(artwork : Artwork) -> Artwork:
     results = [artwork]
@@ -1056,52 +1215,33 @@ def extract_year(date_str):
     res = [res[i].strip() for i in range(len(res))]
     # Give average of the years
     intRes = []
-    
+        
     for date in res:
         try:
             intRes.append(int(date))
         except:
             continue
+
+    if "century" in res:
+        cent = 0
+        for date in res:
+            if "th" in date or 'st' in date or 'nd' in date or 'rd' in date:
+                date = date.replace("th", "").replace("st", "").replace("nd", "").replace("rd", "")
+                cent = int(date)
+                break
+            
+        cent = (cent-1) * 100
+        if 'early' in res:
+            return cent + 25
+        if 'mid' in res:
+            return cent + 50
+        if 'late' in res:
+            return cent + 75
+        
     
     if(len(intRes) == 0):
         return None
 
     return sum(intRes) / len(intRes)
-    
 
-
-if __name__ == '__main__':
-    artworks = artwork_search('fight like a girl')
-
-    #print([(artwork.name, artwork.uris) for artwork in artworks])
-
-    # get_artworks_with_same_subject(artworks[0])
-    for artwork in artworks:
-        if 'getty' in artwork.uris:
-            coex = get_exhibited_with_getty(artwork)
-
-            for co in coex:
-                print(co.name)
-                print(co.image)
-                print(co.uris)
-                print()
-            break
-
-    # artists = artist_search('vincent van gogh')
-
-    # for artist in artists:
-    #     print(artist.name)
-    #     print(artist.uris)
-    #     print()
-
-    # artists_by_name  = {}
-
-    # for artist in artists:
-    #     if artist.name not in artists_by_name:
-    #         artists_by_name[artist.name] = []
-
-    #     artists_by_name[artist.name].append(artist)
-
-    # for name in artists_by_name:
-    #     print(f"{name}: {artists_by_name[name]}")
         

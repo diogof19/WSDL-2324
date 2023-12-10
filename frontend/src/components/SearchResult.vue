@@ -57,11 +57,9 @@ export default defineComponent({
     methods: {
         goToArtistPage() {
             this.$router.push({name: 'artist', params: {uris: JSON.stringify(this.artist.uris)}});
-            //this.goToRoot();
         },
         goToArtworkPage() {
             this.$router.push({name: 'artwork', params: {uris: JSON.stringify(this.artwork.uris)}});
-            //this.goToRoot();
         },
         goToRoot() {
             this.$router.push({name: 'home'});
