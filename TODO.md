@@ -2,8 +2,8 @@
 
 - [X] Search for artworks - Tiago
 - [X] Search for both artists and artworks at the same time - André
-- [ ] Get information for artist page - Diogo
-- [ ] Artist page - Diogo
+- [X] Get information for artist page - Diogo
+- [X] Artist page - Diogo
 - [ ] Get information for artwork page - Tiago
 - [ ] Artwork page - Tiago
 - [ ] Link from Artwork to Artist - Tiago

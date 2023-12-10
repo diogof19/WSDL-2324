@@ -500,6 +500,7 @@ def retrieve_artist_info(uris: dict):
             }
         }
         """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'], uris['getty'])
+        print(query)
         
         sparql = SPARQLWrapper(endpoints['getty'])
         sparql.setMethod('POST')
@@ -514,20 +515,21 @@ def retrieve_artist_info(uris: dict):
             
             if 'lifeDates' in artist_result:
                 lifeDates = artist_result['lifeDates']['value']
-                if '–' in lifeDates:
-                    artist.add_birth_date(lifeDates.split('–')[0].strip())
-                    artist.add_death_date(lifeDates.split('–')[1].strip())
+
+                if '-' in lifeDates:
+                    artist.add_birth_date(lifeDates.split('-')[0].strip())
+                    artist.add_death_date(lifeDates.split('-')[1].strip())
                 else:
                     artist.add_birth_date(lifeDates.split('born ')[1].strip())
             
             if 'birthYear' in artist_result:
-                artist.add_birth_date(artist_result['birthYear']['value'])
+                artist.add_birth_date(artist_result['birthYear']['value'].split('-')[0])
             
             if 'birthPlace' in artist_result:
                 artist.add_birth_place(artist_result['birthPlace']['value'])
             
             if 'deathYear' in artist_result:
-                artist.add_death_date(artist_result['deathYear']['value'])
+                artist.add_death_date(artist_result['deathYear']['value'].split('-')[0])
             
             if 'deathPlace' in artist_result:
                 artist.add_death_place(artist_result['deathPlace']['value'])
@@ -694,9 +696,10 @@ def retrieve_artwork_info(uris: dict):
         query = """
             %s
             
-            SELECT ?name ?image ?authorName ?authorUri ?year ?provenance ?description WHERE {
-                <%s> rdfs:label ?name;
-                    crm:P138i_has_representation ?image.
+            SELECT ?name ?image ?authorName ?authorUri ?year ?provenance ?description WHERE {    
+                <%s> crm:P1_is_identified_by ?identify.                  
+                ?identify crm:P2_has_type gettyth:object-title-primary;
+                          crm:P190_has_symbolic_content ?name.
 
                 OPTIONAL {
                     <%s> crm:P108i_was_produced_by ?production.
@@ -711,11 +714,14 @@ def retrieve_artwork_info(uris: dict):
                     ?referredBy rdfs:label "Object Description";
                                 crm:P190_has_symbolic_content ?description;
                                 purl:format "text/markdown".
-                }         
+                }     
+                OPTIONAL {
+                    <%s> crm:P138i_has_representation ?image.
+                }    
 
                 
         }
-        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'])
+        """ % (prefixes, uris['getty'], uris['getty'], uris['getty'], uris['getty'])
         
     
         sparql = SPARQLWrapper(endpoints['getty'])
@@ -941,8 +947,12 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
 
             SELECT DISTINCT ?uri ?name ?image ?exact_match WHERE {
                 <%s> la:member_of ?exhibition.
-                ?uri la:member_of ?exhibition; rdf:type crm:E22_Human-Made_Object;
-                    rdfs:label ?name.
+                ?uri la:member_of ?exhibition; rdf:type crm:E22_Human-Made_Object.
+
+                ?uri crm:P1_is_identified_by ?identify.                  
+                ?identify crm:P2_has_type gettyth:object-title-primary;
+                          crm:P190_has_symbolic_content ?name.
+                    
                 OPTIONAL {
                     ?uri skos:exactMatch ?exact_match.
                     FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
@@ -952,7 +962,6 @@ def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
                 }
             }
         """ % (prefixes, artwork.uris['getty'])
-        print(query)
 
         search_and_save(query, 'getty', artworks, Artwork)
 
@@ -1039,21 +1048,25 @@ def get_provenance(artwork: Artwork) -> list[str]:
         # Date is stored in res in index 2
 
         res.sort(key=lambda x: x[-1])
-        print(res)
 
     return res
 
 def extract_year(date_str):
     res = date_str.split(' ')
     res = [res[i].strip() for i in range(len(res))]
-
+    # Give average of the years
+    intRes = []
+    
     for date in res:
         try:
-            return int(date)
+            intRes.append(int(date))
         except:
             continue
     
-    return None
+    if(len(intRes) == 0):
+        return None
+
+    return sum(intRes) / len(intRes)
     
 
 

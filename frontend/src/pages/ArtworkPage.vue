@@ -50,7 +50,9 @@
                     <b>
                         Author: 
                     </b>
-                    {{ this.artwork.authorName }}
+                    <a @click="goToArtistPage(this.artwork.authorUri)" style="text-decoration: underline; cursor:pointer;">
+                        {{ this.artwork.authorName }}
+                    </a>
                 </nobr>
             </div>
         </div>
@@ -103,7 +105,7 @@
         </div>
     </div>
 
-    <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-10">
+    <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-5">
         <div class="row ms-1">
             <h5 style="color: #a02905;">
                 Exhibited with
@@ -202,6 +204,9 @@ export default defineComponent({
         goToArtworkPage(artwork: Artwork){
             this.$router.push({ name: 'artwork', params: { uris: JSON.stringify(artwork.uris) } });
         },
+        goToArtistPage(artistUris: Map<string, string>){
+            this.$router.push({ name: 'artist', params: { uris: JSON.stringify(artistUris) } });
+        }
 
     },
 });
