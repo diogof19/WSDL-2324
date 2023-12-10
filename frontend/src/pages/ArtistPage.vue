@@ -87,7 +87,7 @@
         </div>
     </div>
   </div>
-  <div v-if="this.artist.artworks.length > 0" class="card container mt-5 mb-5">
+  <div v-if="this.artist.artworks != null && this.artist.artworks.length > 0" class="card container mt-5 mb-5">
     <div class="row ms-1">
         <h5 style="color: #a02905;">
             Artworks
@@ -229,6 +229,7 @@
             axios.get('http://localhost:8000/artist_search', {
                 params: {
                 q: artist.name,
+                exact: true
                 }
             }).then(response => {
                 console.log(response.data);

@@ -73,7 +73,7 @@
     <div v-if="this.dbpediaSameSubject.length > 0" class="card container mt-5 mb-5">
     <div class="row ms-1">
         <h5 style="color: #a02905;">
-            Artworks
+            Artworks with same subject
         </h5>
     </div>
     <div class="row ps-4 flex-nowrap overflow-auto">
@@ -102,10 +102,11 @@
             </div>
         </div>
     </div>
+
     <div v-if="this.exhibitedWith.length > 0" class="card container mt-5 mb-10">
         <div class="row ms-1">
             <h5 style="color: #a02905;">
-                Artworks
+                Exhibited with
             </h5>
         </div>
         <div class="row ps-4 flex-nowrap overflow-auto">
@@ -197,7 +198,10 @@ export default defineComponent({
             this.artwork = artwork;
 
             this.keys = Object.keys(this.artwork.description);
-        }
+        },
+        goToArtworkPage(artwork: Artwork){
+            this.$router.push({ name: 'artwork', params: { uris: JSON.stringify(artwork.uris) } });
+        },
 
     },
 });

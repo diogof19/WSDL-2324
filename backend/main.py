@@ -21,8 +21,8 @@ def root():
     return {'message' : 'Hello, world!'}
 
 @app.get('/artist_search')
-async def search(q: Optional[str] = ''):
-    results = sparql_queries.artist_search(q)
+async def search(q: Optional[str] = '', exact: Optional[bool] = False):
+    results = sparql_queries.artist_search(q, exact)
 
     return results
 

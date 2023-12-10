@@ -198,7 +198,7 @@ def artist_search(search_term : str, exact_match : bool = False) -> list[Artist]
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'smithsonian', results, Artist)
+    search_and_save(query, 'smithsonian', results, Artist)
 
     return results
 
@@ -265,24 +265,7 @@ def artwork_search(search_term : str) -> list[Artwork]:
         }
     """ % (prefixes, search_term)
     
-    #search_and_save(query, 'smithsonian', results, Artwork)
-
-    #Wikidata
-    query = """
-        %s
-
-        SELECT DISTINCT ?uri ?name ?image WHERE {
-            ?uri wdt:P31 wd:Q3305213;
-                wdt:P1476 ?name.
-            OPTIONAL {
-                ?uri wdt:P18 ?image.
-            }
-            FILTER regex(?name, ".*%s.*", "i")
-            SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }
-            }
-    """ % (prefixes, search_term)
-
-    #search_and_save(query, 'wikidata', results, Artwork)
+    search_and_save(query, 'smithsonian', results, Artwork)
 
     return results
 
@@ -673,7 +656,7 @@ def retrieve_artwork_info(uris: dict):
                     }
                 }
             }
-        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])
+        """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])	
         
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
@@ -843,7 +826,7 @@ def get_artworks_by_artist(uris: dict):
         for r in ret["results"]["bindings"]:
             found = False
             for artwork in bef_artworks:
-                if artwork.name == r['name']['value'] or artwork.name == r['name']['value'].split('(')[0].strip():
+                if artwork.name == r['name']['value']:
                     artwork.add_uri('dbpedia', r['uri']['value'])
                     
                     if 'image' in r and artwork.image == None:
@@ -941,7 +924,13 @@ def get_artworks_with_same_subject(artwork : Artwork) -> list[Artwork]:
 
         search_and_save(query, 'dbpedia', artworks, Artwork)
 
-    return artworks
+    results = []
+
+    for art in artworks:
+        if art.uris['dbpedia'] != artwork.uris['dbpedia']:
+            results.append(art)
+
+    return results
 
 def get_exhibited_with_getty(artwork : Artwork) -> list[Artwork]:
     artworks = []
