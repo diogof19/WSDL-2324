@@ -2,3 +2,15 @@
 
 - Download data [here](http://sirismm.si.edu/siris/linkeddata/n3.tar)
 - Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```saam/n3``` (Don't delete the .empty that is there already)
+
+# Running (Production)
+
+- In the project root, run:
+
+```shell
+docker-compose up --build
+```
+
+# Using
+
+http://localhost:5173/
