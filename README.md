@@ -5,14 +5,14 @@
 # Download and extract data for backup SAAM endpoint
 
 - Download data [here](http://sirismm.si.edu/siris/linkeddata/n3.tar)
-- Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```database/n3``` (Don't delete the .empty that is there already)
+- Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```saam/n3``` (Don't delete the .empty that is there already)
 
-# Start containers
+# Running (Production)
 
 - In the project root, run:
 
 ```shell
-docker-compose up
+docker-compose up --build
 ```
 
 ## Running (DEV)

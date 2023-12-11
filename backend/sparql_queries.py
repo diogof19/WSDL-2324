@@ -81,20 +81,6 @@ def search_and_save(query : str, endpoint_name : str, results : list, result_typ
 
             if len(ret_2['results']['bindings']) > 0:
                 match_id = ret_2['results']['bindings'][0]['exact_match']['value'].split('/')[-1]
-
-        if endpoint_name == 'getty' and 'viz' in r:
-            f(r['viz']['value'])
-            try:
-                image_response = requests.get(r['viz']['value']).json()
-
-                for access_point in image_response['digitally_shown_by'][0]['access_point']:
-                    if access_point['classified_as'][0]['id'] == 'https://data.getty.edu/local/thesaurus/thumbnail':
-                        r['image'] = {
-                            'value': access_point['id']
-                        }
-                        break
-            except Exception as e:
-                print(e)
                 
 
         found = False
