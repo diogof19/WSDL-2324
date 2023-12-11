@@ -31,7 +31,7 @@
         </div>
         <hr>
     <div class="row">
-        <div v-if="this.artwork.year != null || this.artwork.author != null" class="col-6">
+        <div v-if="this.artwork.year != null || this.artwork.authorName != null" class="col-6">
             <div class="row ms-1">
                 <h5 style="color: #a02905;">
                     Creation
@@ -50,7 +50,7 @@
                     <b>
                         Author: 
                     </b>
-                    <a @click="goToArtistPage(this.artwork.authorUri)" style="text-decoration: underline; cursor:pointer;">
+                    <a @click="goToArtistPage(this.artwork.authorName)" style="text-decoration: underline; cursor:pointer;">
                         {{ this.artwork.authorName }}
                     </a>
                 </nobr>
@@ -204,8 +204,21 @@ export default defineComponent({
         goToArtworkPage(artwork: Artwork){
             this.$router.push({ name: 'artwork', params: { uris: JSON.stringify(artwork.uris) } });
         },
-        goToArtistPage(artistUris: Map<string, string>){
-            this.$router.push({ name: 'artist', params: { uris: JSON.stringify(artistUris) } });
+        goToArtistPage(artistName: string){
+            axios.get('http://localhost:8000/artist_search', {
+                params: {
+                q: artistName,
+                exact: true
+                }
+            }).then(response => {
+                console.log(response.data);
+            
+                if (response.data.length > 0)
+                    this.$router.push({ name: 'artist', params: { uris: JSON.stringify(response.data[0].uris) } });
+            }).catch(error => {
+                console.log(error);
+            });
+            
         }
 
     },

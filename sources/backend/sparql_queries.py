@@ -219,13 +219,9 @@ def artwork_search(search_term : str) -> list[Artwork]:
     query = """
         %s
 
-        SELECT DISTINCT ?uri ?name ?image ?exact_match     WHERE {
+        SELECT DISTINCT ?uri ?name ?image WHERE {
             ?uri rdf:type crm:E22_Human-Made_Object; rdfs:label ?name.
-            FILTER regex(?name, ".*%s.*", "i")            
-            OPTIONAL {
-                ?uri skos:exactMatch ?exact_match.
-                FILTER regex(str(?exact_match), "^http:\\\\/\\\\/vocab\\\\.getty\\\\.edu\\\\/.*", "i")
-            }
+            FILTER regex(?name, ".*%s.*", "i")
             OPTIONAL { 
                 ?uri crm:P138i_has_representation ?image.
             }
@@ -237,13 +233,9 @@ def artwork_search(search_term : str) -> list[Artwork]:
     query = """
         %s
         
-        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) (SAMPLE(?image) AS ?image) ?dbpedia WHERE {
+        SELECT DISTINCT ?uri (SAMPLE(?name) AS ?name) (SAMPLE(?image) AS ?image) WHERE {
             ?uri rdf:type cidoc:E22_Man-Made_Object; cidoc:P102_has_title ?title.
             ?title rdfs:label ?name.
-            OPTIONAL {
-                ?uri owl:sameAs ?dbpedia.
-                FILTER regex(str(?dbpedia), "^http:\\\\/\\\\/dbpedia\\\\.org\\\\/.*", "i")
-            }
             OPTIONAL {
                 ?uri cidoc:P138i_has_representation ?image.
             }
@@ -608,7 +600,6 @@ def retrieve_artwork_info(uris: dict):
             
             SELECT (SAMPLE(?name) AS ?name) ?image ?year ?description ?authorName ?authorUri ?wikipediaLink ?museumName WHERE {
                 <%s> rdfs:label ?name.
-                FILTER langMatches(lang(?name),'en').
 
                 OPTIONAL {
                     <%s> dbp:year ?year.
@@ -645,6 +636,7 @@ def retrieve_artwork_info(uris: dict):
                 }
             }
         """ % (prefixes, uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'], uris['dbpedia'])	
+        print(query)
         
         sparql = SPARQLWrapper(endpoints['dbpedia'])
         sparql.setReturnFormat(JSON)
@@ -950,13 +942,18 @@ def get_artworks_by_artist(uris: dict):
         query = """
             %s
             
-            SELECT ?uri ?name ?image WHERE {
+            SELECT ?uri ?name ?image ?wikidata WHERE {
                 ?uri dbo:author %s;
                      rdfs:label ?name.
             FILTER (lang(?name) = "en").
    
             OPTIONAL {
                 ?uri dbo:thumbnail ?image.
+            }
+            
+            OPTIONAL {
+                ?uri owl:sameAs ?wikidata.
+                FILTER regex(str(?wikidata), "^http:\\\\/\\\\/www\\\\.wikidata\\\\.org\\\\/.*", "i")
             }
         }
         """ % (prefixes, uris['dbpedia'])
@@ -974,6 +971,9 @@ def get_artworks_by_artist(uris: dict):
                 if artwork.name == r['name']['value']:
                     artwork.add_uri('dbpedia', r['uri']['value'])
                     
+                    if 'wikidata' in r:
+                        artwork.add_uri('wikidata', r['wikidata']['value'])
+                    
                     if 'image' in r and artwork.image == None:
                         artwork.add_image(r['image']['value'])
                     
@@ -985,6 +985,9 @@ def get_artworks_by_artist(uris: dict):
                 
             artwork = Artwork(r['name']['value'])
             artwork.add_uri('dbpedia', r['uri']['value'])
+            
+            if 'wikidata' in r:
+                artwork.add_uri('wikidata', r['wikidata']['value'])
             
             if 'image' in r:
                 artwork.add_image(r['image']['value'])
