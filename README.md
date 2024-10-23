@@ -23,6 +23,10 @@ Art Attack features the exhibition history of artworks, as well as related artwo
 
 ### Download and extract data for backup SAAM endpoint
 
+The Smithsonian American Art Museum's (SAAM) SPARQL endpoint is often unresponsive. When that happens, Art Attack uses a backup to access SAAM data.
+
+To set up the backup, do
+
 - Download data [here](http://sirismm.si.edu/siris/linkeddata/n3.tar)
 - Extract the ```.n3*``` files and ```n3-seeAlso``` directory from ```.tar``` to ```saam/n3``` (Don't delete the .empty that is there already)
 
@@ -38,7 +42,7 @@ docker-compose up --build
 
 #### Frontend
 
-- First time:
+- First time only:
 
 ```shell
 npm install
@@ -54,7 +58,7 @@ npm run dev
 
 ##### Server
 
-- First time:
+- First time only:
 
 ```shell
 pip install -r requirements.txt
