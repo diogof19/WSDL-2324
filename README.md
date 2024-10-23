@@ -1,4 +1,4 @@
-# Art Attack, Art, Artist, and Exhibitions Search Engine
+# Art Attack - Art, Artist, and Exhibitions Search Engine
 
 A search engine for art built on linked-open data. Art Attack pools data from various public sources, namely the Smithsonian American Art Museum, DBPedia, and Wikidata.
 
